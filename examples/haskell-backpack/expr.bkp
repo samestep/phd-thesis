@@ -1,0 +1,67 @@
+-- Backpack: `Expr` is written against a `Pool` signature and instantiated once per pool.
+unit node where
+  module Node where
+    data Node = Lit Int | Add Int Int | Mul Int Int
+
+unit expr where
+  dependency node
+  signature Pool where
+    import Data.IORef
+    import Node
+    pool :: IORef [Node]
+  module Expr where
+    import Data.IORef
+    import Node
+    import Pool
+
+    node :: Node -> IO Int
+    node n = do
+      modifyIORef pool (++ [n])
+      subtract 1 . length <$> readIORef pool
+
+    lit :: Int -> IO Int
+    lit = node . Lit
+
+    add, mul :: IO Int -> IO Int -> IO Int
+    add l r = do x <- l; y <- r; node (Add x y)
+    mul l r = do x <- l; y <- r; node (Mul x y)
+
+    eval :: Int -> IO Int
+    eval e = do
+      nodes <- readIORef pool
+      case nodes !! e of
+        Lit n -> pure n
+        Add l r -> (+) <$> eval l <*> eval r
+        Mul l r -> (*) <$> eval l <*> eval r
+
+unit pools where
+  dependency node
+  module PoolA where
+    import Data.IORef
+    import System.IO.Unsafe
+    import Node
+    {-# NOINLINE pool #-}
+    pool :: IORef [Node]
+    pool = unsafePerformIO (newIORef [])
+  module PoolB where
+    import Data.IORef
+    import System.IO.Unsafe
+    import Node
+    {-# NOINLINE pool #-}
+    pool :: IORef [Node]
+    pool = unsafePerformIO (newIORef [])
+
+unit main where
+  dependency pools
+  dependency expr[Pool=pools:PoolA] (Expr as A)
+  dependency expr[Pool=pools:PoolB] (Expr as B)
+  module Main where
+    import qualified A
+    import qualified B
+
+    main :: IO ()
+    main = do
+      e <- A.mul (A.add (A.lit 1) (A.lit 2)) (A.add (A.lit 3) (A.lit 4))
+      print =<< A.eval e
+      print =<< B.eval =<< B.add (B.lit 4) (B.lit 4)
+      print =<< A.eval e

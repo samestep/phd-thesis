@@ -18,7 +18,42 @@
         "type": "github"
       }
     },
+    "moss": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1792243938,
+        "narHash": "sha256-hobLFA0a/wyDj6bWeF++YMGOL0J64nWdbzKRW9KWheA=",
+        "owner": "moss-lang",
+        "repo": "moss",
+        "rev": "d82140c30e47d6b85325e808308c3c4c50efafd6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "moss-lang",
+        "repo": "moss",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
+      "locked": {
+        "lastModified": 1792116957,
+        "narHash": "sha256-EjZqHKObBfIOeHZnMRVV87HB3pPq/WBkmRJWyFxmZu8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f20cd90e28fe0403873f473b29e42662cd86e8c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
       "locked": {
         "lastModified": 1790769526,
         "narHash": "sha256-5AIVFLRcx8YAwbFTVPTs7YhwJH7JyHfAQsvXmpovcXI=",
@@ -37,7 +72,29 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "moss": "moss",
+        "nixpkgs": "nixpkgs_2"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "moss",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792219666,
+        "narHash": "sha256-RMO08tKD+hFIL5ryWi85VY4aHE5oIpdV1h4kVFctOkw=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "a110337465cfb76e3806b81b9db3094c3e6e770a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     },
     "systems": {

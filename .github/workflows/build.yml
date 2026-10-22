@@ -11,6 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
+      - run: nix flake check --print-build-logs
       - run: nix build --print-build-logs
       - if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4

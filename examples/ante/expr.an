@@ -1,0 +1,36 @@
+// The pool is an effect; `with_pool` handles it for one computation.
+import Std.Vec.Vec, empty, push, len, get_unchecked
+
+type Node =
+   | Lit I64
+   | Plus Usz Usz
+   | Times Usz Usz
+
+effect Pool =
+    push_node: fn Node -> Usz
+    get_node: fn Usz -> Node
+
+lit (n: I64): Usz can Pool = push_node (Lit n)
+add (l: Usz) (r: Usz): Usz can Pool = push_node (Plus l r)
+mul (l: Usz) (r: Usz): Usz can Pool = push_node (Times l r)
+
+eval (e: Usz): I64 can Pool =
+    match get_node e
+    | Lit n -> n
+    | Plus l r -> eval l + eval r
+    | Times l r -> eval l * eval r
+
+with_pool (f: fn Unit => a can Pool): a =
+    var nodes = Vec.empty ()
+    handler h for
+    | push_node n ->
+        nodes.push n
+        resume (nodes.len - 1usz)
+    | get_node i -> resume (nodes.get_unchecked i |> deref)
+    in f ()
+
+main () = with_pool fn () ->
+    e = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
+    println (eval e)
+    with_pool fn () -> println (eval (add (lit 4) (lit 4)))
+    println (eval e)

@@ -1,0 +1,33 @@
+(* The pool is an effect; `with pool handle` gives a computation its own. *)
+type node = Lit of int | Add of int * int | Mul of int * int
+
+effect Push : node -> int
+effect Get : int -> node
+
+let lit n = perform (Push (Lit n))
+let add l r = perform (Push (Add (l, r)))
+let mul l r = perform (Push (Mul (l, r)))
+
+let rec eval e =
+  match perform (Get e) with
+  | Lit n -> n
+  | Add (l, r) -> eval l + eval r
+  | Mul (l, r) -> eval l * eval r
+
+let rec nth (x :: xs) i = if i = 0 then x else nth xs (i - 1)
+
+let pool = handler
+  | effect (Push n) k -> (fun nodes -> continue k (length nodes) (nodes @ [n]))
+  | effect (Get i) k -> (fun nodes -> continue k (nth nodes i) nodes)
+  | y -> (fun _ -> y)
+  | finally f -> f []
+
+let show n = print_string (string_of_int n ^ "\n")
+
+;;
+
+with pool handle
+  let e = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4)) in
+  show (eval e);
+  (with pool handle show (eval (add (lit 4) (lit 4))));
+  show (eval e)

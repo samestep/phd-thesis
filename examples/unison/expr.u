@@ -1,0 +1,37 @@
+-- The pool is an ability; `withPool` handles it for one computation.
+type Node = Lit Nat | Add Nat Nat | Mul Nat Nat
+
+ability Pool where
+  push : Node ->{Pool} Nat
+  get : Nat ->{Pool} Node
+
+lit n = push (Node.Lit n)
+add l r = push (Node.Add l r)
+mul l r = push (Node.Mul l r)
+
+eval : Nat ->{Pool} Nat
+eval e = match get e with
+  Node.Lit n -> n
+  Node.Add l r -> eval l Nat.+ eval r
+  Node.Mul l r -> eval l Nat.* eval r
+
+withPool : '{g, Pool} a ->{g} a
+withPool p =
+  go nodes = cases
+    { a } -> a
+    { push n -> k } -> handle k (List.size nodes) with go (List.snoc nodes n)
+    { get i -> k } -> match List.at i nodes with
+      Some n -> handle k n with go nodes
+      None -> bug i
+  handle !p with go []
+
+say : Nat ->{IO} ()
+say n = match putBytes.impl (stdHandle StdOut) (Text.toUtf8 (Nat.toText n Text.++ "\n")) with
+  _ -> ()
+
+main : '{IO} ()
+main = do withPool do
+  e = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
+  say (eval e)
+  withPool do say (eval (add (lit 4) (lit 4)))
+  say (eval e)

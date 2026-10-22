@@ -1,0 +1,41 @@
+// The pool is an effect; handlers are lexical, so `do push` finds the nearest `withPool`.
+type Node {
+  Lit(n: Int)
+  Add(l: Int, r: Int)
+  Mul(l: Int, r: Int)
+}
+
+interface Pool {
+  def push(n: Node): Int
+  def get(i: Int): Node
+}
+
+def lit(n: Int): Int / Pool = do push(Lit(n))
+def add(l: Int, r: Int): Int / Pool = do push(Add(l, r))
+def mul(l: Int, r: Int): Int / Pool = do push(Mul(l, r))
+
+def eval(e: Int): Int / Pool = do get(e) match {
+  case Lit(n) => n
+  case Add(l, r) => eval(l) + eval(r)
+  case Mul(l, r) => eval(l) * eval(r)
+}
+
+def at(xs: List[Node], i: Int): Node = xs match {
+  case Cons(x, rest) => if (i == 0) x else at(rest, i - 1)
+  case Nil() => Lit(0)
+}
+
+def withPool[R] { prog: => R / Pool }: R = {
+  var nodes: List[Node] = Nil()
+  try prog() with Pool {
+    def push(n) = { nodes = nodes.append([n]); resume(nodes.size - 1) }
+    def get(i) = resume(at(nodes, i))
+  }
+}
+
+def main() = withPool {
+  val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
+  println(eval(e))
+  withPool { println(eval(add(lit(4), lit(4)))) }
+  println(eval(e))
+}

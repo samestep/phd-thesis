@@ -1,0 +1,53 @@
+-- Coeffects: nothing is implicit, but each grade says how a value may be used ([] = freely).
+data Bool = False | True
+
+data List a = Nil | Cons a (List a)
+
+data Node = Lit Int | Add (Int []) (Int []) | Mul (Int []) (Int [])
+
+-- Nodes newest first, and how many there are.
+data Pool = Pool (List (Node [])) (Int [])
+
+empty : Pool []
+empty = [Pool Nil [0]]
+
+alloc : Node [] -> Pool [] -> (Int [], Pool [])
+alloc [n] [(Pool ns [k])] = ([k], [Pool (Cons [n] ns) [k + 1]])
+
+lit : Int [] -> Pool [] -> (Int [], Pool [])
+lit [n] = alloc [Lit n]
+
+add : Int [] -> Int [] -> Pool [] -> (Int [], Pool [])
+add [l] [r] = alloc [Add [l] [r]]
+
+mul : Int [] -> Int [] -> Pool [] -> (Int [], Pool [])
+mul [l] [r] = alloc [Mul [l] [r]]
+
+nth : Int [] -> (List (Node [])) [] -> Node
+nth [_] [Nil] = Lit 0;
+nth [i] [(Cons [x] xs)] = if i == 0 then x else nth [i - 1] [xs]
+
+eval : Int [] -> Pool [] -> Int
+eval [e] [(Pool ns [k])] = case nth [k - 1 - e] [ns] of
+  Lit n -> n;
+  Add l r -> eval l [Pool ns [k]] + eval r [Pool ns [k]];
+  Mul l r -> eval l [Pool ns [k]] * eval r [Pool ns [k]]
+
+main : () <{Stdout}>
+main =
+  let (a, p) = lit [1] empty;
+      (b, p) = lit [2] p;
+      (c, p) = lit [3] p;
+      (d, p) = lit [4] p;
+      (ab, p) = add a b p;
+      (cd, p) = add c d p;
+      (e, p) = mul ab cd p;
+      [e] = e;
+      [p] = p;
+      inner = (let (x, q) = lit [4] empty;
+                   (y, q) = lit [4] q;
+                   (f, q) = add x y q
+               in eval f q)
+  in toStdout (stringAppend (showInt (eval [e] [p])) (stringAppend "\n"
+       (stringAppend (showInt inner) (stringAppend "\n"
+       (stringAppend (showInt (eval [e] [p])) "\n")))))

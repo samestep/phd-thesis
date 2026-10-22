@@ -1,0 +1,102 @@
+import "./lib/wasi.moss" use WasiStd;
+import "./lib/wasistd.moss" use Branch;
+import "./lib/wasm.moss" use Wasm;
+import "./lib/wasip1.moss" use Wasi;
+
+assume Std {
+  # region: types
+  unit Lit;
+  unit Add;
+  unit Mul;
+
+  type Op = | Lit | Add | Mul;
+
+  # An expression is just an index into a pool of nodes.
+  type Expr Int;
+
+  # The pool: one row per node, across parallel lists.
+  val ops: IntList;
+  val lhs: IntList;
+  val rhs: IntList;
+
+  context Pool = ops, lhs, rhs;
+  # endregion
+
+  assume Pool {
+    # region: accessors
+    fn Expr.id(): Int {
+      match this { Expr i => i }
+    }
+
+    fn Expr.op(): Op {
+      let code = ops.get(this.id());
+      if code.eq(zero) { Lit } else if code.eq(one) { Add } else { Mul }
+    }
+
+    fn Expr.value(): Int { lhs.get(this.id()) }
+    fn Expr.left(): Expr { Expr (lhs.get(this.id())) }
+    fn Expr.right(): Expr { Expr (rhs.get(this.id())) }
+    # endregion
+
+    # region: eval
+    fn Expr.eval(): Int {
+      match this.op() {
+        Lit => this.value(),
+        Add => this.left().eval().add(this.right().eval()),
+        Mul => this.left().eval().mul(this.right().eval()),
+      }
+    }
+    # endregion
+
+    # region: build
+    fn node(op: Int, a: Int, b: Int): Expr {
+      let id = ops.length();
+      ops.push(op);
+      lhs.push(a);
+      rhs.push(b);
+      Expr (id)
+    }
+
+    fn lit(n: Int): Expr { node(zero, n, zero) }
+    fn add(l: Expr, r: Expr): Expr { node(one, l.id(), r.id()) }
+    fn mul(l: Expr, r: Expr): Expr { node(one.add(one), l.id(), r.id()) }
+    # endregion
+
+    fn report(e: Expr) {
+      print_int(e.eval());
+      putchar(char::newline);
+    }
+  }
+
+  fn print_int(n: Int) {
+    let ten = one.shl(one.add(one).add(one)).add(one.add(one));
+    if n.ge(ten) { print_int(n.div(ten)); }
+    putchar(n.rem(ten).add(char::digit0.code()).char());
+  }
+
+  # region: main
+  fn elsewhere() {
+    bind ops = int_list(), lhs = int_list(), rhs = int_list();
+    let four = one.shl(one.add(one));
+    report(add(lit(four), lit(four)));
+  }
+
+  fn demo() {
+    bind ops = int_list(), lhs = int_list(), rhs = int_list();
+    let two = one.add(one);
+    let three = two.add(one);
+    let four = two.add(two);
+    let e = mul(add(lit(one), lit(two)), add(lit(three), lit(four)));
+    report(e);
+    elsewhere();
+    report(e);
+  }
+  # endregion
+}
+
+assume Wasm, Wasi, Branch {
+  fn main() {
+    bind WasiStd;
+    demo();
+  }
+}

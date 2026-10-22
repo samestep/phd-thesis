@@ -1,8 +1,10 @@
+#import "snippet.typ": snippet
+
 = Introduction
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one.
 
-(code example)
+#snippet("examples/moss/expr.moss", region: "eval")
 
 The most _convenient_ way to write this code would be if `foo` had a field called `bar`. But this causes problems if there are a _million_ `Foo`s.
 
