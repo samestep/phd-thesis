@@ -44,36 +44,54 @@
           pkgs = import nixpkgs { inherit system; };
           mossPkg = moss.packages.${system}.default;
 
-          # Every directory under `examples` is one example: its source files
-          # plus a `check.nix` saying which packages it needs and how to run
-          # it. Whatever it prints must match `examples/expected.txt`. A
-          # `check.nix` gets `pkgs`, this flake's `inputs` (for sources
-          # nixpkgs doesn't have), and `moss`.
-          exampleNames = lib.attrNames (
-            lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./examples)
-          );
+          # Every example is a directory of source files,
+          # `examples/<language>/<mechanism>/<variant>`, where the variant is
+          # `concrete` (a fixed index type), `generic` (an abstract one) or
+          # `dynamic` (dispatch at run time). The nearest `check.nix` above it
+          # says which packages it needs and how to run it: usually the
+          # language's, and a mechanism's own where its toolchain differs.
+          # Whatever an example prints must match `examples/expected.txt`. A
+          # `check.nix` gets `pkgs`, this flake's `inputs` (for sources nixpkgs
+          # doesn't have), and `moss`.
+          subdirs =
+            dir: lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir));
+          examples = lib.concatMap (
+            language:
+            lib.concatMap (
+              mechanism:
+              map (variant: { inherit language mechanism variant; }) (subdirs ./examples/${language}/${mechanism})
+            ) (subdirs ./examples/${language})
+          ) (subdirs ./examples);
           example =
-            name:
+            {
+              language,
+              mechanism,
+              variant,
+            }:
             let
-              spec = import ./examples/${name}/check.nix {
+              own = ./examples/${language}/${mechanism}/check.nix;
+              spec = import (if builtins.pathExists own then own else ./examples/${language}/check.nix) {
                 inherit pkgs inputs;
                 moss = mossPkg;
               };
+              name = "example-${language}-${mechanism}-${variant}";
             in
-            if !(spec.supported or true) then
-              null
-            else
-              pkgs.runCommandCC "example-${name}" { nativeBuildInputs = spec.packages or [ ]; } ''
-                cp -r ${./examples/${name}} src
-                chmod -R u+w src
-                cd src
-                export HOME=$(mktemp -d)
-                {
-                  ${spec.run}
-                } > actual
-                diff -u ${./examples/expected.txt} actual
-                touch $out
-              '';
+            lib.nameValuePair name (
+              if !(spec.supported or true) then
+                null
+              else
+                pkgs.runCommandCC name { nativeBuildInputs = spec.packages or [ ]; } ''
+                  cp -r ${./examples/${language}/${mechanism}/${variant}} src
+                  chmod -R u+w src
+                  cd src
+                  export HOME=$(mktemp -d)
+                  {
+                    ${spec.run}
+                  } > actual
+                  diff -u ${./examples/expected.txt} actual
+                  touch $out
+                ''
+            );
         in
         {
           packages.default = pkgs.runCommand "samestep-thesis" { buildInputs = [ pkgs.typst ]; } ''
@@ -83,9 +101,7 @@
           checks = {
             pdf = self.packages.${system}.default;
           }
-          // lib.filterAttrs (_: drv: drv != null) (
-            lib.listToAttrs (map (name: lib.nameValuePair "example-${name}" (example name)) exampleNames)
-          );
+          // lib.filterAttrs (_: drv: drv != null) (lib.listToAttrs (map example examples));
           devShells.default = pkgs.mkShellNoCC {
             packages = [
               pkgs.typst
