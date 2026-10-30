@@ -14,8 +14,8 @@ let
     src = release;
     # The Linux binary needs patching to run here; the macOS one links
     # only against system libraries.
-    nativeBuildInputs = pkgs.lib.optional pkgs.stdenv.isLinux pkgs.autoPatchelfHook;
-    buildInputs = pkgs.lib.optional pkgs.stdenv.isLinux pkgs.gmp;
+    nativeBuildInputs = pkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux pkgs.autoPatchelfHook;
+    buildInputs = pkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux pkgs.gmp;
     installPhase = "install -Dm755 gr $out/bin/gr";
   };
 in
