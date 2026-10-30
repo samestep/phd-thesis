@@ -1,11 +1,10 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    moss.url = "github:moss-lang/moss";
-
-    # Sources for examples whose languages aren't in nixpkgs. The releases
-    # are pinned by the versions in their URLs; the modular implicits fork
-    # follows its default branch, whose last commit is from 2018.
+    moss = {
+      url = "github:moss-lang/moss";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     effekt = {
       url = "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz";
       flake = false;
