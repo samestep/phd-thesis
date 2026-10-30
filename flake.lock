@@ -1,5 +1,18 @@
 {
   "nodes": {
+    "effekt": {
+      "flake": false,
+      "locked": {
+        "lastModified": 499162500,
+        "narHash": "sha256-UtJWu1UIY9gQDQKHfCFn/D2GBo8TkrYFPUN0kZ/+uE4=",
+        "type": "tarball",
+        "url": "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -16,6 +29,32 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
+      }
+    },
+    "granule-linux-x86_64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1735829162,
+        "narHash": "sha256-IBRfW72qI5TEPMzN1Cl5HxcVPew+QGyhNj5FJiRaaBs=",
+        "type": "tarball",
+        "url": "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-linux_x86_64.zip"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-linux_x86_64.zip"
+      }
+    },
+    "granule-macos-arm64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1732299648,
+        "narHash": "sha256-9ScHS6BsUODfVuED7a4L2P8B5GH4qxakRmsrDpxgjP0=",
+        "type": "tarball",
+        "url": "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-macos_arm64.zip"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-macos_arm64.zip"
       }
     },
     "moss": {
@@ -69,11 +108,31 @@
         "type": "github"
       }
     },
+    "ocaml-modular-implicits": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1539950342,
+        "narHash": "sha256-yGeqV0oM4i/Y8OWeHHCaBjCDZvv8DNnOzpqXwp6s1mM=",
+        "owner": "ocamllabs",
+        "repo": "ocaml-modular-implicits",
+        "rev": "92e45da5c8a4c2db8b2cd5be28a5bec2ac2181f1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ocamllabs",
+        "repo": "ocaml-modular-implicits",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
+        "effekt": "effekt",
         "flake-utils": "flake-utils",
+        "granule-linux-x86_64": "granule-linux-x86_64",
+        "granule-macos-arm64": "granule-macos-arm64",
         "moss": "moss",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs_2",
+        "ocaml-modular-implicits": "ocaml-modular-implicits"
       }
     },
     "rust-overlay": {

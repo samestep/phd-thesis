@@ -3,13 +3,34 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     moss.url = "github:moss-lang/moss";
+
+    # Sources for examples whose languages aren't in nixpkgs. The releases
+    # are pinned by the versions in their URLs; the modular implicits fork
+    # follows its default branch, whose last commit is from 2018.
+    effekt = {
+      url = "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz";
+      flake = false;
+    };
+    granule-linux-x86_64 = {
+      url = "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-linux_x86_64.zip";
+      flake = false;
+    };
+    granule-macos-arm64 = {
+      url = "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-macos_arm64.zip";
+      flake = false;
+    };
+    ocaml-modular-implicits = {
+      url = "github:ocamllabs/ocaml-modular-implicits";
+      flake = false;
+    };
   };
   outputs =
-    {
+    inputs@{
       self,
       nixpkgs,
       flake-utils,
       moss,
+      ...
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -20,7 +41,9 @@
 
         # Every directory under `examples` is one example: its source files
         # plus a `check.nix` saying which packages it needs and how to run
-        # it. Whatever it prints must match `examples/expected.txt`.
+        # it. Whatever it prints must match `examples/expected.txt`. A
+        # `check.nix` gets `pkgs`, this flake's `inputs` (for sources
+        # nixpkgs doesn't have), and `moss`.
         exampleNames = lib.attrNames (
           lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./examples)
         );
@@ -28,7 +51,7 @@
           name:
           let
             spec = import ./examples/${name}/check.nix {
-              inherit pkgs;
+              inherit pkgs inputs;
               moss = mossPkg;
             };
           in
