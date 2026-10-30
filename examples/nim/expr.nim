@@ -1,32 +1,48 @@
 # A global pool, swapped for the body of a template and restored after it.
 type
-  Op = enum Lit, Add, Mul
-  Node = tuple[op: Op, a, b: int]
+  BinOp = enum Add, Sub, Mul, Div
+  ExprRef = distinct uint32
+  ExprKind = enum Binary, Literal
+  Expr = object
+    case kind: ExprKind
+    of Binary:
+      op: BinOp
+      lhs, rhs: ExprRef
+    of Literal:
+      num: int64
+  ExprPool = seq[Expr]
 
-var pool: seq[Node]
+var pool: ExprPool
 
 template withPool(body: untyped) =
   let saved = move pool
   try: body
   finally: pool = saved
 
-proc push(op: Op, a, b: int): int =
-  pool.add (op, a, b)
-  pool.high
+proc add(expr: Expr): ExprRef =
+  pool.add expr
+  ExprRef(pool.high)
 
-proc lit(n: int): int = push(Lit, n, 0)
-proc add(l, r: int): int = push(Add, l, r)
-proc mul(l, r: int): int = push(Mul, l, r)
+proc get(expr: ExprRef): Expr = pool[int(expr)]
 
-proc eval(e: int): int =
-  let n = pool[e]
-  case n.op
-  of Lit: n.a
-  of Add: eval(n.a) + eval(n.b)
-  of Mul: eval(n.a) * eval(n.b)
+# Nim checks for overflow, so wrap explicitly; `div` truncates.
+proc interp(expr: ExprRef): int64 =
+  let e = get(expr)
+  case e.kind
+  of Literal: e.num
+  of Binary:
+    let (lhs, rhs) = (interp(e.lhs), interp(e.rhs))
+    case e.op
+    of Add: cast[int64](cast[uint64](lhs) + cast[uint64](rhs))
+    of Sub: cast[int64](cast[uint64](lhs) - cast[uint64](rhs))
+    of Mul: cast[int64](cast[uint64](lhs) * cast[uint64](rhs))
+    of Div: (if rhs == 0: 0'i64 else: lhs div rhs)
 
-let e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-echo eval(e)
+proc lit(n: int64): ExprRef = add(Expr(kind: Literal, num: n))
+proc bin(op: BinOp, lhs, rhs: ExprRef): ExprRef = add(Expr(kind: Binary, op: op, lhs: lhs, rhs: rhs))
+
+let e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2))
+echo interp(e)
 withPool:
-  echo eval(add(lit(4), lit(4)))
-echo eval(e)
+  echo interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4))))
+echo interp(e)

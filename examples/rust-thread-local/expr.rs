@@ -2,14 +2,24 @@
 use std::cell::RefCell;
 
 #[derive(Clone, Copy)]
-enum Node {
-    Lit(i64),
-    Add(usize, usize),
-    Mul(usize, usize),
+enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+#[derive(Clone, Copy)]
+struct ExprRef(u32);
+
+#[derive(Clone, Copy)]
+enum Expr {
+    Binary(BinOp, ExprRef, ExprRef),
+    Literal(i64),
 }
 
 thread_local! {
-    static POOL: RefCell<Vec<Node>> = RefCell::new(Vec::new());
+    static POOL: RefCell<Vec<Expr>> = RefCell::new(Vec::new());
 }
 
 fn with_pool<T>(f: impl FnOnce() -> T) -> T {
@@ -19,36 +29,45 @@ fn with_pool<T>(f: impl FnOnce() -> T) -> T {
     result
 }
 
-fn push(node: Node) -> usize {
+fn add(expr: Expr) -> ExprRef {
     POOL.with_borrow_mut(|pool| {
-        pool.push(node);
-        pool.len() - 1
+        pool.push(expr);
+        ExprRef(pool.len() as u32 - 1)
     })
 }
 
-fn lit(n: i64) -> usize {
-    push(Node::Lit(n))
+fn get(expr: ExprRef) -> Expr {
+    POOL.with_borrow(|pool| pool[expr.0 as usize])
 }
 
-fn add(l: usize, r: usize) -> usize {
-    push(Node::Add(l, r))
-}
-
-fn mul(l: usize, r: usize) -> usize {
-    push(Node::Mul(l, r))
-}
-
-fn eval(e: usize) -> i64 {
-    match POOL.with_borrow(|pool| pool[e]) {
-        Node::Lit(n) => n,
-        Node::Add(l, r) => eval(l) + eval(r),
-        Node::Mul(l, r) => eval(l) * eval(r),
+fn interp(expr: ExprRef) -> i64 {
+    match get(expr) {
+        Expr::Binary(op, lhs, rhs) => {
+            let lhs = interp(lhs);
+            let rhs = interp(rhs);
+            match op {
+                BinOp::Add => lhs.wrapping_add(rhs),
+                BinOp::Sub => lhs.wrapping_sub(rhs),
+                BinOp::Mul => lhs.wrapping_mul(rhs),
+                BinOp::Div => lhs.checked_div(rhs).unwrap_or(0),
+            }
+        }
+        Expr::Literal(num) => num,
     }
 }
 
+fn lit(n: i64) -> ExprRef {
+    add(Expr::Literal(n))
+}
+
+fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef) -> ExprRef {
+    add(Expr::Binary(op, lhs, rhs))
+}
+
 fn main() {
-    let e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-    println!("{}", eval(e));
-    with_pool(|| println!("{}", eval(add(lit(4), lit(4)))));
-    println!("{}", eval(e));
+    use BinOp::*;
+    let e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2));
+    println!("{}", interp(e));
+    with_pool(|| println!("{}", interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4))))));
+    println!("{}", interp(e));
 }

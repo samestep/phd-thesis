@@ -4,22 +4,27 @@ use warnings;
 
 our @pool;
 
-sub node { push @pool, [@_]; $#pool }
-sub lit { node('lit', @_) }
-sub add { node('add', @_) }
-sub mul { node('mul', @_) }
+sub add { push @pool, $_[0]; $#pool }
+sub get { $pool[ $_[0] ] }
 
-sub ev {
-  my ($op, $a, $b) = @{ $pool[shift] };
-  return $a if $op eq 'lit';
-  return ev($a) + ev($b) if $op eq 'add';
-  return ev($a) * ev($b);
+sub interp {
+  my $expr = get(shift);
+  return $expr->{num} if $expr->{tag} eq 'literal';
+  my ($l, $r) = (interp($expr->{lhs}), interp($expr->{rhs}));
+  my $op = $expr->{op};
+  return $l + $r if $op eq 'add';
+  return $l - $r if $op eq 'sub';
+  return $l * $r if $op eq 'mul';
+  return $r == 0 ? 0 : do { use integer; $l / $r };
 }
 
-my $e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-print ev($e), "\n";
+sub lit { add({ tag => 'literal', num => $_[0] }) }
+sub bin { add({ tag => 'binary', op => $_[0], lhs => $_[1], rhs => $_[2] }) }
+
+my $e = bin('div', bin('mul', bin('sub', lit(7), lit(10)), lit(7)), lit(2));
+print interp($e), "\n";
 {
   local @pool;
-  print ev(add(lit(4), lit(4))), "\n";
+  print interp(bin('div', bin('add', lit(4), lit(4)), bin('sub', lit(4), lit(4)))), "\n";
 }
-print ev($e), "\n";
+print interp($e), "\n";

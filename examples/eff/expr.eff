@@ -1,33 +1,41 @@
 (* The pool is an effect; `with pool handle` gives a computation its own. *)
-type node = Lit of int | Add of int * int | Mul of int * int
+type binop = Add | Sub | Mul | Div
+type expr = Binary of binop * int * int | Literal of int
 
-effect Push : node -> int
-effect Get : int -> node
+effect PoolAdd : expr -> int
+effect PoolGet : int -> expr
 
-let lit n = perform (Push (Lit n))
-let add l r = perform (Push (Add (l, r)))
-let mul l r = perform (Push (Mul (l, r)))
+let add e = perform (PoolAdd e)
+let get r = perform (PoolGet r)
 
-let rec eval e =
-  match perform (Get e) with
-  | Lit n -> n
-  | Add (l, r) -> eval l + eval r
-  | Mul (l, r) -> eval l * eval r
+let rec interp e =
+  match get e with
+  | Binary (op, lhs, rhs) ->
+    let l = interp lhs in
+    let r = interp rhs in
+    (match op with
+     | Add -> l + r
+     | Sub -> l - r
+     | Mul -> l * r
+     | Div -> if r = 0 then 0 else l / r)
+  | Literal num -> num
 
 let rec nth (x :: xs) i = if i = 0 then x else nth xs (i - 1)
 
 let pool = handler
-  | effect (Push n) k -> (fun nodes -> continue k (length nodes) (nodes @ [n]))
-  | effect (Get i) k -> (fun nodes -> continue k (nth nodes i) nodes)
+  | effect (PoolAdd e) k -> (fun nodes -> continue k (length nodes) (nodes @ [e]))
+  | effect (PoolGet i) k -> (fun nodes -> continue k (nth nodes i) nodes)
   | y -> (fun _ -> y)
   | finally f -> f []
 
+let lit n = add (Literal n)
+let bin op l r = add (Binary (op, l, r))
 let show n = print_string (string_of_int n ^ "\n")
 
 ;;
 
 with pool handle
-  let e = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4)) in
-  show (eval e);
-  (with pool handle show (eval (add (lit 4) (lit 4))));
-  show (eval e)
+  let e = bin Div (bin Mul (bin Sub (lit 7) (lit 10)) (lit 7)) (lit 2) in
+  show (interp e);
+  (with pool handle show (interp (bin Div (bin Add (lit 4) (lit 4)) (bin Sub (lit 4) (lit 4)))));
+  show (interp e)

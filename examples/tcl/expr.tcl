@@ -1,20 +1,24 @@
 # A global, swapped and restored around the inner scope.
 set pool {}
 
-proc node {args} { global pool; lappend pool $args; expr {[llength $pool] - 1} }
-proc lit {n} { node lit $n }
-proc add {l r} { node add $l $r }
-proc mul {l r} { node mul $l $r }
+proc add {expr} { global pool; lappend pool $expr; expr {[llength $pool] - 1} }
+proc get {ref} { global pool; lindex $pool $ref }
 
-proc ev {e} {
-  global pool
-  lassign [lindex $pool $e] op a b
-  switch $op {
-    lit { return $a }
-    add { expr {[ev $a] + [ev $b]} }
-    mul { expr {[ev $a] * [ev $b]} }
+proc interp {ref} {
+  set e [get $ref]
+  if {[dict get $e tag] eq "literal"} { return [dict get $e num] }
+  set l [interp [dict get $e lhs]]
+  set r [interp [dict get $e rhs]]
+  switch [dict get $e op] {
+    add { expr {$l + $r} }
+    sub { expr {$l - $r} }
+    mul { expr {$l * $r} }
+    div { expr {$r == 0 ? 0 : ($l < 0) == ($r < 0) ? abs($l) / abs($r) : -(abs($l) / abs($r))} }
   }
 }
+
+proc lit {n} { add [dict create tag literal num $n] }
+proc bin {op l r} { add [dict create tag binary op $op lhs $l rhs $r] }
 
 proc with_pool {body} {
   global pool
@@ -23,7 +27,7 @@ proc with_pool {body} {
   try { uplevel 1 $body } finally { set pool $old }
 }
 
-set e [mul [add [lit 1] [lit 2]] [add [lit 3] [lit 4]]]
-puts [ev $e]
-with_pool { puts [ev [add [lit 4] [lit 4]]] }
-puts [ev $e]
+set e [bin div [bin mul [bin sub [lit 7] [lit 10]] [lit 7]] [lit 2]]
+puts [interp $e]
+with_pool { puts [interp [bin div [bin add [lit 4] [lit 4]] [bin sub [lit 4] [lit 4]]]] }
+puts [interp $e]

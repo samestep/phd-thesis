@@ -1,33 +1,43 @@
 // Context parameters (given/using): the pool is passed implicitly by type.
 import scala.collection.mutable.ArrayBuffer
 
-enum Node:
-  case Lit(n: Long)
-  case Add(l: Int, r: Int)
-  case Mul(l: Int, r: Int)
-import Node.*
+enum BinOp:
+  case Add, Sub, Mul, Div
 
-type Pool = ArrayBuffer[Node]
+case class ExprRef(index: Int)
 
-def push(node: Node)(using pool: Pool): Int =
-  pool += node
-  pool.length - 1
+enum Expr:
+  case Binary(op: BinOp, lhs: ExprRef, rhs: ExprRef)
+  case Literal(num: Long)
+import Expr.*
 
-def lit(n: Long)(using Pool) = push(Lit(n))
-def add(l: Int, r: Int)(using Pool) = push(Add(l, r))
-def mul(l: Int, r: Int)(using Pool) = push(Mul(l, r))
+class ExprPool:
+  private val exprs = ArrayBuffer[Expr]()
+  def add(expr: Expr): ExprRef =
+    exprs += expr
+    ExprRef(exprs.length - 1)
+  def get(expr: ExprRef): Expr = exprs(expr.index)
 
-def eval(e: Int)(using pool: Pool): Long = pool(e) match
-  case Lit(n) => n
-  case Add(l, r) => eval(l) + eval(r)
-  case Mul(l, r) => eval(l) * eval(r)
+def interp(expr: ExprRef)(using pool: ExprPool): Long = pool.get(expr) match
+  case Binary(op, lhs, rhs) =>
+    val l = interp(lhs)
+    val r = interp(rhs)
+    op match
+      case BinOp.Add => l + r
+      case BinOp.Sub => l - r
+      case BinOp.Mul => l * r
+      case BinOp.Div => if r == 0 then 0 else l / r
+  case Literal(num) => num
+
+def num(n: Long)(using pool: ExprPool) = pool.add(Literal(n))
+def bin(op: BinOp, l: ExprRef, r: ExprRef)(using pool: ExprPool) = pool.add(Binary(op, l, r))
 
 @main def run() =
-  given Pool = ArrayBuffer()
-  val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-  println(eval(e))
+  given ExprPool = ExprPool()
+  val e = bin(BinOp.Div, bin(BinOp.Mul, bin(BinOp.Sub, num(7), num(10)), num(7)), num(2))
+  println(interp(e))
   locally {
-    given Pool = ArrayBuffer()
-    println(eval(add(lit(4), lit(4))))
+    given ExprPool = ExprPool()
+    println(interp(bin(BinOp.Div, bin(BinOp.Add, num(4), num(4)), bin(BinOp.Sub, num(4), num(4)))))
   }
-  println(eval(e))
+  println(interp(e))

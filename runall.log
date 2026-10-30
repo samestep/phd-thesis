@@ -1,0 +1,6 @@
+warning: Git tree '/home/admin/github/samestep/phd-thesis' is dirty
+these 2 derivations will be built:
+  /nix/store/a2nlnl08x1hyafdix6rghshb7bvm7qky-example-moss.drv
+  /nix/store/zmb1gvr2v2fzk4v9y72zmfyx1rs6p2w5-samestep-thesis.drv
+building '/nix/store/a2nlnl08x1hyafdix6rghshb7bvm7qky-example-moss.drv'...
+building '/nix/store/zmb1gvr2v2fzk4v9y72zmfyx1rs6p2w5-samestep-thesis.drv'...

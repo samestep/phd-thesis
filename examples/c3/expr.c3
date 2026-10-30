@@ -3,45 +3,61 @@ module expr;
 import std::io;
 import std::collections::list;
 
-enum Op { LIT, ADD, MUL }
-struct Node { Op op; long a; long b; }
-alias Pool = List{Node};
-
-Pool* pool;
-
-fn long push(Op op, long a, long b)
+enum BinOp { ADD, SUB, MUL, DIV }
+typedef ExprRef = uint;
+enum ExprKind { BINARY, LITERAL }
+struct Expr
 {
-	pool.push({ op, a, b });
-	return pool.len() - 1;
-}
-
-fn long lit(long n) => push(LIT, n, 0);
-fn long add(long l, long r) => push(ADD, l, r);
-fn long mul(long l, long r) => push(MUL, l, r);
-
-fn long eval(long e)
-{
-	Node n = (*pool)[e];
-	switch (n.op)
+	ExprKind kind;
+	union
 	{
-		case LIT: return n.a;
-		case ADD: return eval(n.a) + eval(n.b);
-		case MUL: return eval(n.a) * eval(n.b);
+		struct binary { BinOp op; ExprRef lhs; ExprRef rhs; }
+		long literal;
 	}
 }
+alias ExprPool = List{Expr};
+
+ExprPool* pool;
+
+fn ExprRef add(Expr expr)
+{
+	pool.push(expr);
+	return (ExprRef)(pool.len() - 1);
+}
+
+fn Expr get(ExprRef expr) => (*pool)[(usz)expr];
+
+// C3's integer arithmetic wraps, and its division truncates.
+fn long interp(ExprRef expr)
+{
+	Expr e = get(expr);
+	if (e.kind == LITERAL) return e.literal;
+	long lhs = interp(e.binary.lhs);
+	long rhs = interp(e.binary.rhs);
+	switch (e.binary.op)
+	{
+		case ADD: return lhs + rhs;
+		case SUB: return lhs - rhs;
+		case MUL: return lhs * rhs;
+		case DIV: return rhs == 0 ? 0 : lhs / rhs;
+	}
+}
+
+fn ExprRef lit(long n) => add({ .kind = LITERAL, .literal = n });
+fn ExprRef bin(BinOp op, ExprRef lhs, ExprRef rhs) => add({ .kind = BINARY, .binary = { op, lhs, rhs } });
 
 fn void main()
 {
-	Pool a;
+	ExprPool a;
 	pool = &a;
-	long e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-	io::printn(eval(e));
+	ExprRef e = bin(DIV, bin(MUL, bin(SUB, lit(7), lit(10)), lit(7)), lit(2));
+	io::printn(interp(e));
 	{
-		Pool* saved = pool;
+		ExprPool* saved = pool;
 		defer pool = saved;
-		Pool b;
+		ExprPool b;
 		pool = &b;
-		io::printn(eval(add(lit(4), lit(4))));
+		io::printn(interp(bin(DIV, bin(ADD, lit(4), lit(4)), bin(SUB, lit(4), lit(4)))));
 	}
-	io::printn(eval(e));
+	io::printn(interp(e));
 }

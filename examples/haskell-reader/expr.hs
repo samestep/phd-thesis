@@ -3,39 +3,55 @@ import Control.Monad.Reader
 import Data.IORef
 import qualified Data.Sequence as S
 
-data Node = Lit Int | Add Int Int | Mul Int Int
+data BinOp = Add | Sub | Mul | Div
 
-type M = ReaderT (IORef (S.Seq Node)) IO
+data Expr = Binary BinOp ExprRef ExprRef | Literal Int
 
-node :: Node -> M Int
-node n = do
+newtype ExprRef = ExprRef Int
+
+type ExprPool = IORef (S.Seq Expr)
+
+type M = ReaderT ExprPool IO
+
+add :: Expr -> M ExprRef
+add expr = do
   pool <- ask
-  liftIO $ modifyIORef pool (S.|> n)
-  liftIO $ subtract 1 . S.length <$> readIORef pool
+  liftIO $ modifyIORef pool (S.|> expr)
+  liftIO $ ExprRef . subtract 1 . S.length <$> readIORef pool
 
-lit :: Int -> M Int
-lit = node . Lit
+get :: ExprRef -> M Expr
+get (ExprRef i) = do
+  pool <- ask
+  liftIO $ (`S.index` i) <$> readIORef pool
 
-add, mul :: M Int -> M Int -> M Int
-add l r = do x <- l; y <- r; node (Add x y)
-mul l r = do x <- l; y <- r; node (Mul x y)
+interp :: ExprRef -> M Int
+interp expr = do
+  e <- get expr
+  case e of
+    Binary op lhs rhs -> do
+      l <- interp lhs
+      r <- interp rhs
+      pure $ case op of
+        Add -> l + r
+        Sub -> l - r
+        Mul -> l * r
+        Div -> if r == 0 then 0 else l `quot` r
+    Literal num -> pure num
 
-eval :: Int -> M Int
-eval e = do
-  nodes <- liftIO . readIORef =<< ask
-  case S.index nodes e of
-    Lit n -> pure n
-    Add l r -> (+) <$> eval l <*> eval r
-    Mul l r -> (*) <$> eval l <*> eval r
+lit :: Int -> M ExprRef
+lit = add . Literal
+
+bin :: BinOp -> M ExprRef -> M ExprRef -> M ExprRef
+bin op l r = do x <- l; y <- r; add (Binary op x y)
 
 main :: IO ()
 main = do
   a <- newIORef S.empty
   b <- newIORef S.empty
   flip runReaderT a $ do
-    e <- mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
-    liftIO . print =<< eval e
+    e <- bin Div (bin Mul (bin Sub (lit 7) (lit 10)) (lit 7)) (lit 2)
+    liftIO . print =<< interp e
     local (const b) $ do
-      f <- add (lit 4) (lit 4)
-      liftIO . print =<< eval f
-    liftIO . print =<< eval e
+      f <- bin Div (bin Add (lit 4) (lit 4)) (bin Sub (lit 4) (lit 4))
+      liftIO . print =<< interp f
+    liftIO . print =<< interp e

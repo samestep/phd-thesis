@@ -1,39 +1,56 @@
 // The pool is an effect; `with pool` installs a handler for the rest of the scope.
-type node
-  Lit(n : int)
-  Add(l : int, r : int)
-  Mul(l : int, r : int)
+type binop
+  Add
+  Sub
+  Mul
+  Div
+
+alias expr-ref = int
+
+type expr
+  Binary(op : binop, lhs : expr-ref, rhs : expr-ref)
+  Literal(num : int)
 
 effect pool
-  fun push(n : node) : int
-  fun get(i : int) : node
+  fun add(e : expr) : expr-ref
+  fun get(e : expr-ref) : expr
 
-fun lit(n) push(Lit(n))
-fun add(l, r) push(Add(l, r))
-fun mul(l, r) push(Mul(l, r))
+// Koka's `/` is Euclidean; the post's division truncates toward zero.
+fun quot(x : int, y : int) : int
+  val q = x.abs / y.abs
+  if (x < 0) == (y < 0) then q else 0 - q
 
-fun eval(e : int) : <pool, div> int
+fun interp(e : expr-ref) : <pool, div> int
   match get(e)
-    Lit(n) -> n
-    Add(l, r) -> eval(l) + eval(r)
-    Mul(l, r) -> eval(l) * eval(r)
+    Binary(op, lhs, rhs) ->
+      val l = interp(lhs)
+      val r = interp(rhs)
+      match op
+        Add -> l + r
+        Sub -> l - r
+        Mul -> l * r
+        Div -> if r == 0 then 0 else quot(l, r)
+    Literal(num) -> num
 
 fun pool(action)
   var nodes := []
   with handler
-    fun push(n)
-      nodes := nodes ++ [n]
+    fun add(e)
+      nodes := nodes ++ [e]
       nodes.length - 1
     fun get(i)
       match nodes[i]
-        Just(n) -> n
-        Nothing -> Lit(0)
+        Just(e) -> e
+        Nothing -> Literal(0)
   action()
+
+fun lit(n) add(Literal(n))
+fun bin(op, l, r) add(Binary(op, l, r))
 
 fun main()
   with pool
-  val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-  println(eval(e))
+  val e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2))
+  println(interp(e))
   pool
-    println(eval(add(lit(4), lit(4))))
-  println(eval(e))
+    println(interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4)))))
+  println(interp(e))

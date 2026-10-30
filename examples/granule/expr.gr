@@ -3,51 +3,72 @@ data Bool = False | True
 
 data List a = Nil | Cons a (List a)
 
-data Node = Lit Int | Add (Int []) (Int []) | Mul (Int []) (Int [])
+data BinOp = Add | Sub | Mul | Div
 
--- Nodes newest first, and how many there are.
-data Pool = Pool (List (Node [])) (Int [])
+data Expr = Binary BinOp (Int []) (Int []) | Literal Int
 
-empty : Pool []
-empty = [Pool Nil [0]]
+-- Expressions newest first, and how many there are.
+data ExprPool = ExprPool (List (Expr [])) (Int [])
 
-alloc : Node [] -> Pool [] -> (Int [], Pool [])
-alloc [n] [(Pool ns [k])] = ([k], [Pool (Cons [n] ns) [k + 1]])
+empty : ExprPool []
+empty = [ExprPool Nil [0]]
 
-lit : Int [] -> Pool [] -> (Int [], Pool [])
-lit [n] = alloc [Lit n]
+add : Expr [] -> ExprPool [] -> (Int [], ExprPool [])
+add [e] [(ExprPool es [k])] = ([k], [ExprPool (Cons [e] es) [k + 1]])
 
-add : Int [] -> Int [] -> Pool [] -> (Int [], Pool [])
-add [l] [r] = alloc [Add [l] [r]]
-
-mul : Int [] -> Int [] -> Pool [] -> (Int [], Pool [])
-mul [l] [r] = alloc [Mul [l] [r]]
-
-nth : Int [] -> (List (Node [])) [] -> Node
-nth [_] [Nil] = Lit 0;
+nth : Int [] -> (List (Expr [])) [] -> Expr
+nth [_] [Nil] = Literal 0;
 nth [i] [(Cons [x] xs)] = if i == 0 then x else nth [i - 1] [xs]
 
-eval : Int [] -> Pool [] -> Int
-eval [e] [(Pool ns [k])] = case nth [k - 1 - e] [ns] of
-  Lit n -> n;
-  Add l r -> eval l [Pool ns [k]] + eval r [Pool ns [k]];
-  Mul l r -> eval l [Pool ns [k]] * eval r [Pool ns [k]]
+get : Int [] -> ExprPool [] -> Expr
+get [r] [(ExprPool es [k])] = nth [k - 1 - r] [es]
+
+absI : Int [] -> Int
+absI [x] = if x < 0 then 0 - x else x
+
+-- Granule's `div` floors; the post's division truncates toward zero.
+quot : Int [] -> Int [] -> Int
+quot [x] [y] =
+  if y == 0 then 0 else
+    let [q] = [div (absI [x]) (absI [y])]
+    in if x < 0 then (if y < 0 then q else 0 - q) else (if y < 0 then 0 - q else q)
+
+apply : BinOp -> Int [] -> Int [] -> Int
+apply Add [l] [r] = l + r;
+apply Sub [l] [r] = l - r;
+apply Mul [l] [r] = l * r;
+apply Div [l] [r] = quot [l] [r]
+
+interp : Int [] -> ExprPool [] -> Int
+interp [e] [(ExprPool es [k])] = case get [e] [ExprPool es [k]] of
+  Binary op [lhs] [rhs] -> apply op [interp [lhs] [ExprPool es [k]]] [interp [rhs] [ExprPool es [k]]];
+  Literal num -> num
+
+lit : Int [] -> ExprPool [] -> (Int [], ExprPool [])
+lit [n] = add [Literal n]
+
+bin : BinOp [] -> Int [] -> Int [] -> ExprPool [] -> (Int [], ExprPool [])
+bin [op] [l] [r] = add [Binary op [l] [r]]
 
 main : () <{Stdout}>
 main =
-  let (a, p) = lit [1] empty;
-      (b, p) = lit [2] p;
-      (c, p) = lit [3] p;
-      (d, p) = lit [4] p;
-      (ab, p) = add a b p;
-      (cd, p) = add c d p;
-      (e, p) = mul ab cd p;
+  let (a, p) = lit [7] empty;
+      (b, p) = lit [10] p;
+      (s, p) = bin [Sub] a b p;
+      (c, p) = lit [7] p;
+      (m, p) = bin [Mul] s c p;
+      (d, p) = lit [2] p;
+      (e, p) = bin [Div] m d p;
       [e] = e;
       [p] = p;
       inner = (let (x, q) = lit [4] empty;
                    (y, q) = lit [4] q;
-                   (f, q) = add x y q
-               in eval f q)
-  in toStdout (stringAppend (showInt (eval [e] [p])) (stringAppend "\n"
+                   (n, q) = bin [Add] x y q;
+                   (z, q) = lit [4] q;
+                   (w, q) = lit [4] q;
+                   (o, q) = bin [Sub] z w q;
+                   (f, q) = bin [Div] n o q
+               in interp f q)
+  in toStdout (stringAppend (showInt (interp [e] [p])) (stringAppend "\n"
        (stringAppend (showInt inner) (stringAppend "\n"
-       (stringAppend (showInt (eval [e] [p])) "\n")))))
+       (stringAppend (showInt (interp [e] [p])) "\n")))))

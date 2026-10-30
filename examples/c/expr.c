@@ -1,46 +1,61 @@
 // A global pool, saved and restored around a scope.
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef enum { LIT, ADD, MUL } Op;
-typedef struct { Op op; long a, b; } Node;
-typedef struct { Node *nodes; size_t len, cap; } Pool;
+typedef enum { ADD, SUB, MUL, DIV } BinOp;
+typedef uint32_t ExprRef;
+typedef struct {
+  enum { BINARY, LITERAL } kind;
+  union {
+    struct { BinOp op; ExprRef lhs, rhs; } binary;
+    int64_t literal;
+  };
+} Expr;
+typedef struct { Expr *exprs; size_t len, cap; } ExprPool;
 
-static Pool *pool;
+static ExprPool *pool;
 
-static long push(Op op, long a, long b) {
+static ExprRef add(Expr expr) {
   if (pool->len == pool->cap) {
     pool->cap = pool->cap ? 2 * pool->cap : 8;
-    pool->nodes = realloc(pool->nodes, pool->cap * sizeof(Node));
+    pool->exprs = realloc(pool->exprs, pool->cap * sizeof(Expr));
   }
-  pool->nodes[pool->len] = (Node){op, a, b};
+  pool->exprs[pool->len] = expr;
   return pool->len++;
 }
 
-static long lit(long n) { return push(LIT, n, 0); }
-static long add(long l, long r) { return push(ADD, l, r); }
-static long mul(long l, long r) { return push(MUL, l, r); }
+static Expr get(ExprRef expr) { return pool->exprs[expr]; }
 
-static long eval(long e) {
-  Node n = pool->nodes[e];
-  switch (n.op) {
-  case LIT: return n.a;
-  case ADD: return eval(n.a) + eval(n.b);
-  default: return eval(n.a) * eval(n.b);
+static int64_t interp(ExprRef expr) {
+  Expr e = get(expr);
+  if (e.kind == LITERAL) return e.literal;
+  // Wrapping arithmetic, through unsigned integers.
+  uint64_t lhs = interp(e.binary.lhs), rhs = interp(e.binary.rhs);
+  switch (e.binary.op) {
+  case ADD: return lhs + rhs;
+  case SUB: return lhs - rhs;
+  case MUL: return lhs * rhs;
+  default: return rhs ? (int64_t)lhs / (int64_t)rhs : 0;
   }
 }
 
+static ExprRef lit(int64_t n) { return add((Expr){.kind = LITERAL, .literal = n}); }
+static ExprRef bin(BinOp op, ExprRef lhs, ExprRef rhs) {
+  return add((Expr){.kind = BINARY, .binary = {op, lhs, rhs}});
+}
+
 int main(void) {
-  Pool a = {0};
+  ExprPool a = {0};
   pool = &a;
-  long e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-  printf("%ld\n", eval(e));
+  ExprRef e = bin(DIV, bin(MUL, bin(SUB, lit(7), lit(10)), lit(7)), lit(2));
+  printf("%ld\n", (long)interp(e));
   {
-    Pool *saved = pool;
-    Pool b = {0};
+    ExprPool *saved = pool;
+    ExprPool b = {0};
     pool = &b;
-    printf("%ld\n", eval(add(lit(4), lit(4))));
+    printf("%ld\n", (long)interp(bin(DIV, bin(ADD, lit(4), lit(4)), bin(SUB, lit(4), lit(4)))));
     pool = saved;
   }
-  printf("%ld\n", eval(e));
+  printf("%ld\n", (long)interp(e));
 }

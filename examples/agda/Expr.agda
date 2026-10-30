@@ -1,61 +1,83 @@
--- Instance arguments: `{{Pool}}` is found by instance search.
+-- Instance arguments: `{{ExprPool}}` is found by instance search.
 {-# OPTIONS --guardedness #-}
 module Expr where
 
 open import Data.List using (List; []; _∷_; _++_; length)
-open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
-open import Data.Nat.Show using (show)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.DivMod using (_/_)
+open import Data.Integer using (ℤ; +_; _+_; _-_; _*_; ∣_∣; sign; _◃_)
+open import Data.Integer.Show using (show)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Sign as Sign using ()
 open import Data.String using (String)
 open import IO using (Main; run; putStrLn; _>>_)
 
-data Node : Set where
-  Lit : ℕ → Node
-  Add Mul : ℕ → ℕ → Node
+data BinOp : Set where
+  Add Sub Mul Div : BinOp
 
-record Pool : Set where
+data ExprRef : Set where
+  ref : ℕ → ExprRef
+
+data Expr : Set where
+  Binary : BinOp → ExprRef → ExprRef → Expr
+  Literal : ℤ → Expr
+
+record ExprPool : Set where
   constructor pool
-  field nodes : List Node
+  field exprs : List Expr
 
-at : List Node → ℕ → Node
-at [] _ = Lit 0
-at (n ∷ _) zero = n
-at (_ ∷ ns) (suc i) = at ns i
+get : {{ExprPool}} → ExprRef → Expr
+get {{p}} (ref i) = at (ExprPool.exprs p) i
+  where
+    at : List Expr → ℕ → Expr
+    at [] _ = Literal (+ 0)
+    at (e ∷ _) zero = e
+    at (_ ∷ es) (suc j) = at es j
+
+-- Division truncating toward zero, and 0 for a zero divisor.
+quot : ℤ → ℤ → ℤ
+quot l r with ∣ r ∣
+... | zero = + 0
+... | suc k = (sign l Sign.* sign r) ◃ (∣ l ∣ / suc k)
+
+apply : BinOp → ℤ → ℤ → ℤ
+apply Add l r = l + r
+apply Sub l r = l - r
+apply Mul l r = l * r
+apply Div l r = quot l r
 
 {-# TERMINATING #-}
-eval : {{Pool}} → ℕ → ℕ
-eval {{p}} e with at (Pool.nodes p) e
-... | Lit n = n
-... | Add l r = eval l + eval r
-... | Mul l r = eval l * eval r
+interp : {{ExprPool}} → ExprRef → ℤ
+interp e with get e
+... | Binary op lhs rhs = apply op (interp lhs) (interp rhs)
+... | Literal num = num
 
--- Building threads the pool through; `eval` reads it implicitly.
-Build = List Node → List Node × ℕ
+-- Building threads the pool through; `interp` reads it implicitly.
+Build = List Expr → List Expr × ExprRef
 
-node : Node → Build
-node n ns = ns ++ (n ∷ []) , length ns
+add : Expr → Build
+add e es = es ++ (e ∷ []) , ref (length es)
 
-lit : ℕ → Build
-lit n = node (Lit n)
+lit : ℤ → Build
+lit n = add (Literal n)
 
-add mul : Build → Build → Build
-add l r ns = let (ns₁ , x) = l ns ; (ns₂ , y) = r ns₁ in node (Add x y) ns₂
-mul l r ns = let (ns₁ , x) = l ns ; (ns₂ , y) = r ns₁ in node (Mul x y) ns₂
+bin : BinOp → Build → Build → Build
+bin op l r es = let (es₁ , x) = l es ; (es₂ , y) = r es₁ in add (Binary op x y) es₂
 
 outer inner : String
-outer = show (eval e)
+outer = show (interp e)
   where
-    built = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4)) []
+    built = bin Div (bin Mul (bin Sub (lit (+ 7)) (lit (+ 10))) (lit (+ 7))) (lit (+ 2)) []
     e = proj₂ built
     instance
-      a : Pool
+      a : ExprPool
       a = pool (proj₁ built)
-inner = show (eval f)
+inner = show (interp f)
   where
-    built = add (lit 4) (lit 4) []
+    built = bin Div (bin Add (lit (+ 4)) (lit (+ 4))) (bin Sub (lit (+ 4)) (lit (+ 4))) []
     f = proj₂ built
     instance
-      b : Pool
+      b : ExprPool
       b = pool (proj₁ built)
 
 main : Main

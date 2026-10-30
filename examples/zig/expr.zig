@@ -1,42 +1,55 @@
 // The pool is passed explicitly, like a Zig allocator.
 const std = @import("std");
 
-const Node = union(enum) { lit: i64, add: [2]u32, mul: [2]u32 };
+const BinOp = enum { add, sub, mul, div };
+const ExprRef = enum(u32) { _ };
+const Expr = union(enum) {
+    binary: struct { op: BinOp, lhs: ExprRef, rhs: ExprRef },
+    literal: i64,
+};
 
-const Pool = struct {
-    nodes: std.ArrayList(Node) = .empty,
+const ExprPool = struct {
+    exprs: std.ArrayList(Expr) = .empty,
     gpa: std.mem.Allocator,
 
-    fn push(p: *Pool, node: Node) u32 {
-        p.nodes.append(p.gpa, node) catch @panic("OOM");
-        return @intCast(p.nodes.items.len - 1);
+    fn add(p: *ExprPool, expr: Expr) ExprRef {
+        p.exprs.append(p.gpa, expr) catch @panic("OOM");
+        return @enumFromInt(p.exprs.items.len - 1);
     }
-    fn lit(p: *Pool, n: i64) u32 {
-        return p.push(.{ .lit = n });
+    fn get(p: *const ExprPool, expr: ExprRef) Expr {
+        return p.exprs.items[@intFromEnum(expr)];
     }
-    fn add(p: *Pool, l: u32, r: u32) u32 {
-        return p.push(.{ .add = .{ l, r } });
-    }
-    fn mul(p: *Pool, l: u32, r: u32) u32 {
-        return p.push(.{ .mul = .{ l, r } });
-    }
-    fn eval(p: *const Pool, e: u32) i64 {
-        return switch (p.nodes.items[e]) {
-            .lit => |n| n,
-            .add => |c| p.eval(c[0]) + p.eval(c[1]),
-            .mul => |c| p.eval(c[0]) * p.eval(c[1]),
+    fn interp(p: *const ExprPool, expr: ExprRef) i64 {
+        return switch (p.get(expr)) {
+            .binary => |b| {
+                const lhs = p.interp(b.lhs);
+                const rhs = p.interp(b.rhs);
+                return switch (b.op) {
+                    .add => lhs +% rhs,
+                    .sub => lhs -% rhs,
+                    .mul => lhs *% rhs,
+                    .div => if (rhs == 0) 0 else @divTrunc(lhs, rhs),
+                };
+            },
+            .literal => |num| num,
         };
+    }
+    fn lit(p: *ExprPool, n: i64) ExprRef {
+        return p.add(.{ .literal = n });
+    }
+    fn bin(p: *ExprPool, op: BinOp, lhs: ExprRef, rhs: ExprRef) ExprRef {
+        return p.add(.{ .binary = .{ .op = op, .lhs = lhs, .rhs = rhs } });
     }
 };
 
 pub fn main() void {
     const gpa = std.heap.page_allocator;
-    var a: Pool = .{ .gpa = gpa };
-    const e = a.mul(a.add(a.lit(1), a.lit(2)), a.add(a.lit(3), a.lit(4)));
-    std.debug.print("{d}\n", .{a.eval(e)});
+    var a: ExprPool = .{ .gpa = gpa };
+    const e = a.bin(.div, a.bin(.mul, a.bin(.sub, a.lit(7), a.lit(10)), a.lit(7)), a.lit(2));
+    std.debug.print("{d}\n", .{a.interp(e)});
     {
-        var b: Pool = .{ .gpa = gpa };
-        std.debug.print("{d}\n", .{b.eval(b.add(b.lit(4), b.lit(4)))});
+        var b: ExprPool = .{ .gpa = gpa };
+        std.debug.print("{d}\n", .{b.interp(b.bin(.div, b.bin(.add, b.lit(4), b.lit(4)), b.bin(.sub, b.lit(4), b.lit(4))))});
     }
-    std.debug.print("{d}\n", .{a.eval(e)});
+    std.debug.print("{d}\n", .{a.interp(e)});
 }

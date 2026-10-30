@@ -6,56 +6,80 @@ import (
 	"fmt"
 )
 
-type op int
+type BinOp int
 
 const (
-	lit op = iota
-	add
-	mul
+	Add BinOp = iota
+	Sub
+	Mul
+	Div
 )
 
-type node struct {
-	op   op
-	a, b int
+type ExprRef uint32
+
+type Expr interface{ isExpr() }
+type Binary struct {
+	Op       BinOp
+	Lhs, Rhs ExprRef
 }
+type Literal int64
+
+func (Binary) isExpr()  {}
+func (Literal) isExpr() {}
+
+type ExprPool []Expr
 
 type poolKey struct{}
 
-func pool(ctx context.Context) *[]node { return ctx.Value(poolKey{}).(*[]node) }
+func pool(ctx context.Context) *ExprPool { return ctx.Value(poolKey{}).(*ExprPool) }
 
 func withPool(ctx context.Context) context.Context {
-	return context.WithValue(ctx, poolKey{}, &[]node{})
+	return context.WithValue(ctx, poolKey{}, &ExprPool{})
 }
 
-func push(ctx context.Context, o op, a, b int) int {
+func add(ctx context.Context, expr Expr) ExprRef {
 	p := pool(ctx)
-	*p = append(*p, node{o, a, b})
-	return len(*p) - 1
+	*p = append(*p, expr)
+	return ExprRef(len(*p) - 1)
 }
 
-func Lit(ctx context.Context, n int) int    { return push(ctx, lit, n, 0) }
-func Add(ctx context.Context, l, r int) int { return push(ctx, add, l, r) }
-func Mul(ctx context.Context, l, r int) int { return push(ctx, mul, l, r) }
+func get(ctx context.Context, expr ExprRef) Expr { return (*pool(ctx))[expr] }
 
-func eval(ctx context.Context, e int) int {
-	n := (*pool(ctx))[e]
-	switch n.op {
-	case lit:
-		return n.a
-	case add:
-		return eval(ctx, n.a) + eval(ctx, n.b)
+// Go's integer arithmetic wraps, and its division truncates.
+func interp(ctx context.Context, expr ExprRef) int64 {
+	switch e := get(ctx, expr).(type) {
+	case Binary:
+		lhs, rhs := interp(ctx, e.Lhs), interp(ctx, e.Rhs)
+		switch e.Op {
+		case Add:
+			return lhs + rhs
+		case Sub:
+			return lhs - rhs
+		case Mul:
+			return lhs * rhs
+		default:
+			if rhs == 0 {
+				return 0
+			}
+			return lhs / rhs
+		}
 	default:
-		return eval(ctx, n.a) * eval(ctx, n.b)
+		return int64(e.(Literal))
 	}
+}
+
+func lit(ctx context.Context, n int64) ExprRef { return add(ctx, Literal(n)) }
+func bin(ctx context.Context, op BinOp, lhs, rhs ExprRef) ExprRef {
+	return add(ctx, Binary{op, lhs, rhs})
 }
 
 func main() {
 	ctx := withPool(context.Background())
-	e := Mul(ctx, Add(ctx, Lit(ctx, 1), Lit(ctx, 2)), Add(ctx, Lit(ctx, 3), Lit(ctx, 4)))
-	fmt.Println(eval(ctx, e))
+	e := bin(ctx, Div, bin(ctx, Mul, bin(ctx, Sub, lit(ctx, 7), lit(ctx, 10)), lit(ctx, 7)), lit(ctx, 2))
+	fmt.Println(interp(ctx, e))
 	{
 		ctx := withPool(ctx)
-		fmt.Println(eval(ctx, Add(ctx, Lit(ctx, 4), Lit(ctx, 4))))
+		fmt.Println(interp(ctx, bin(ctx, Div, bin(ctx, Add, lit(ctx, 4), lit(ctx, 4)), bin(ctx, Sub, lit(ctx, 4), lit(ctx, 4)))))
 	}
-	fmt.Println(eval(ctx, e))
+	fmt.Println(interp(ctx, e))
 }

@@ -1,28 +1,38 @@
 # `local` is dynamically scoped: callees see the caller's pool.
 pool=()
 
-node() { pool+=("$*"); r=$((${#pool[@]} - 1)); }
-lit() { node lit "$1"; }
-add() { node add "$1" "$2"; }
-mul() { node mul "$1" "$2"; }
+# Results come back in `r`, since a subshell couldn't add to the pool.
+add() { pool+=("$*"); r=$((${#pool[@]} - 1)); }
+get() { r=${pool[$1]}; }
 
-ev() {
-  local op a b x
-  read -r op a b <<< "${pool[$1]}"
+interp() {
+  local tag op lhs rhs l
+  get "$1"
+  read -r tag op lhs rhs <<< "$r"
+  if [[ $tag == literal ]]; then r=$op; return; fi
+  interp "$lhs"; l=$r
+  interp "$rhs"
   case $op in
-    lit) r=$a ;;
-    add) ev "$a"; x=$r; ev "$b"; r=$((x + r)) ;;
-    mul) ev "$a"; x=$r; ev "$b"; r=$((x * r)) ;;
+    add) r=$((l + r)) ;;
+    sub) r=$((l - r)) ;;
+    mul) r=$((l * r)) ;;
+    div) if ((r == 0)); then r=0; else r=$((l / r)); fi ;;
   esac
 }
 
+lit() { add literal "$1"; }
+bin() { add binary "$1" "$2" "$3"; }
+
 inner() {
   local pool=()
-  lit 4; local x=$r; lit 4; add "$x" "$r"; ev "$r"; echo "$r"
+  lit 4; local a=$r; lit 4; bin add "$a" "$r"; local s=$r
+  lit 4; a=$r; lit 4; bin sub "$a" "$r"
+  bin div "$s" "$r"; interp "$r"; echo "$r"
 }
 
-lit 1; a=$r; lit 2; add "$a" "$r"; ab=$r
-lit 3; c=$r; lit 4; add "$c" "$r"; mul "$ab" "$r"; e=$r
-ev "$e"; echo "$r"
+lit 7; a=$r; lit 10; bin sub "$a" "$r"; s=$r
+lit 7; bin mul "$s" "$r"; m=$r
+lit 2; bin div "$m" "$r"; e=$r
+interp "$e"; echo "$r"
 inner
-ev "$e"; echo "$r"
+interp "$e"; echo "$r"

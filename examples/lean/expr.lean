@@ -1,33 +1,49 @@
 -- A reader monad: the pool is the environment, replaced with `withReader`.
-inductive Node where
-  | lit (n : Nat)
-  | add (l r : Nat)
-  | mul (l r : Nat)
+inductive BinOp where
+  | add | sub | mul | div
+
+structure ExprRef where
+  index : Nat
   deriving Inhabited
 
-abbrev M := ReaderT (IO.Ref (Array Node)) IO
+inductive Expr where
+  | binary (op : BinOp) (lhs rhs : ExprRef)
+  | literal (num : Int)
+  deriving Inhabited
 
-def node (n : Node) : M Nat := do
+abbrev ExprPool := IO.Ref (Array Expr)
+
+abbrev M := ReaderT ExprPool IO
+
+def ExprPool.add (expr : Expr) : M ExprRef := do
   let pool ← read
-  pool.modify (·.push n)
-  return (← pool.get).size - 1
+  pool.modify (·.push expr)
+  return ⟨(← ST.Ref.get pool).size - 1⟩
 
-def lit (n : Nat) : M Nat := node (.lit n)
-def add (l r : M Nat) : M Nat := do node (.add (← l) (← r))
-def mul (l r : M Nat) : M Nat := do node (.mul (← l) (← r))
+def ExprPool.get (expr : ExprRef) : M Expr := do
+  return (← ST.Ref.get (← read))[expr.index]!
 
-partial def eval (e : Nat) : M Nat := do
-  match (← (← read).get)[e]! with
-  | .lit n => return n
-  | .add l r => return (← eval l) + (← eval r)
-  | .mul l r => return (← eval l) * (← eval r)
+partial def interp (expr : ExprRef) : M Int := do
+  match ← ExprPool.get expr with
+  | .binary op lhs rhs =>
+    let l ← interp lhs
+    let r ← interp rhs
+    return match op with
+      | .add => l + r
+      | .sub => l - r
+      | .mul => l * r
+      | .div => if r == 0 then 0 else l.tdiv r
+  | .literal num => return num
+
+def lit (n : Int) : M ExprRef := ExprPool.add (.literal n)
+def bin (op : BinOp) (l r : M ExprRef) : M ExprRef := do ExprPool.add (.binary op (← l) (← r))
 
 def main : IO Unit := do
   let a ← IO.mkRef #[]
   let b ← IO.mkRef #[]
   ReaderT.run (r := a) do
-    let e ← mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
-    IO.println (← eval e)
+    let e ← bin .div (bin .mul (bin .sub (lit 7) (lit 10)) (lit 7)) (lit 2)
+    IO.println (← interp e)
     withReader (fun _ => b) do
-      IO.println (← eval (← add (lit 4) (lit 4)))
-    IO.println (← eval e)
+      IO.println (← interp (← bin .div (bin .add (lit 4) (lit 4)) (bin .sub (lit 4) (lit 4))))
+    IO.println (← interp e)

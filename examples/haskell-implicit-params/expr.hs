@@ -3,39 +3,51 @@
 import Data.IORef
 import qualified Data.Sequence as S
 
-data Node = Lit Int | Add Int Int | Mul Int Int
+data BinOp = Add | Sub | Mul | Div
 
-type Pool = IORef (S.Seq Node)
+data Expr = Binary BinOp ExprRef ExprRef | Literal Int
 
-node :: (?pool :: Pool) => Node -> IO Int
-node n = do
-  modifyIORef ?pool (S.|> n)
-  subtract 1 . S.length <$> readIORef ?pool
+newtype ExprRef = ExprRef Int
 
-lit :: (?pool :: Pool) => Int -> IO Int
-lit = node . Lit
+type ExprPool = IORef (S.Seq Expr)
 
-add, mul :: (?pool :: Pool) => IO Int -> IO Int -> IO Int
-add l r = do x <- l; y <- r; node (Add x y)
-mul l r = do x <- l; y <- r; node (Mul x y)
+add :: (?pool :: ExprPool) => Expr -> IO ExprRef
+add expr = do
+  modifyIORef ?pool (S.|> expr)
+  ExprRef . subtract 1 . S.length <$> readIORef ?pool
 
-eval :: (?pool :: Pool) => Int -> IO Int
-eval e = do
-  nodes <- readIORef ?pool
-  case S.index nodes e of
-    Lit n -> pure n
-    Add l r -> (+) <$> eval l <*> eval r
-    Mul l r -> (*) <$> eval l <*> eval r
+get :: (?pool :: ExprPool) => ExprRef -> IO Expr
+get (ExprRef i) = (`S.index` i) <$> readIORef ?pool
+
+interp :: (?pool :: ExprPool) => ExprRef -> IO Int
+interp expr = do
+  e <- get expr
+  case e of
+    Binary op lhs rhs -> do
+      l <- interp lhs
+      r <- interp rhs
+      pure $ case op of
+        Add -> l + r
+        Sub -> l - r
+        Mul -> l * r
+        Div -> if r == 0 then 0 else l `quot` r
+    Literal num -> pure num
+
+lit :: (?pool :: ExprPool) => Int -> IO ExprRef
+lit = add . Literal
+
+bin :: (?pool :: ExprPool) => BinOp -> IO ExprRef -> IO ExprRef -> IO ExprRef
+bin op l r = do x <- l; y <- r; add (Binary op x y)
 
 main :: IO ()
 main = do
   a <- newIORef S.empty
   let ?pool = a
-  e <- mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
-  print =<< eval e
+  e <- bin Div (bin Mul (bin Sub (lit 7) (lit 10)) (lit 7)) (lit 2)
+  print =<< interp e
   b <- newIORef S.empty
   do
     let ?pool = b
-    f <- add (lit 4) (lit 4)
-    print =<< eval f
-  print =<< eval e
+    f <- bin Div (bin Add (lit 4) (lit 4)) (bin Sub (lit 4) (lit 4))
+    print =<< interp f
+  print =<< interp e

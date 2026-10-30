@@ -1,31 +1,52 @@
-// Implicit parameters: each call site fills `?nodes` with whatever `nodes` is in scope there.
-type node
-  Lit(n : int)
-  Add(l : int, r : int)
-  Mul(l : int, r : int)
+// Implicit parameters: each call site fills `?pool` with whatever `pool` is in scope there.
+type binop
+  Add
+  Sub
+  Mul
+  Div
 
-fun push(n : node, ?nodes : ref<h, list<node>>) : <read<h>, write<h>> int
-  nodes := !nodes ++ [n]
-  (!nodes).length - 1
+alias expr-ref = int
 
-fun lit(n, ?nodes) push(Lit(n))
-fun add(l, r, ?nodes) push(Add(l, r))
-fun mul(l, r, ?nodes) push(Mul(l, r))
+type expr
+  Binary(op : binop, lhs : expr-ref, rhs : expr-ref)
+  Literal(num : int)
 
-fun eval(e : int, ?nodes : ref<h, list<node>>) : <read<h>, div> int
-  match (!nodes)[e]
-    Just(Lit(n)) -> n
-    Just(Add(l, r)) -> eval(l) + eval(r)
-    Just(Mul(l, r)) -> eval(l) * eval(r)
-    Nothing -> 0
+fun add(e : expr, ?pool : ref<h, list<expr>>) : <read<h>, write<h>> expr-ref
+  pool := !pool ++ [e]
+  (!pool).length - 1
+
+fun get(e : expr-ref, ?pool : ref<h, list<expr>>) : read<h> expr
+  match (!pool)[e]
+    Just(x) -> x
+    Nothing -> Literal(0)
+
+// Koka's `/` is Euclidean; the post's division truncates toward zero.
+fun quot(x : int, y : int) : int
+  val q = x.abs / y.abs
+  if (x < 0) == (y < 0) then q else 0 - q
+
+fun interp(e : expr-ref, ?pool : ref<h, list<expr>>) : <read<h>, div> int
+  match get(e)
+    Binary(op, lhs, rhs) ->
+      val l = interp(lhs)
+      val r = interp(rhs)
+      match op
+        Add -> l + r
+        Sub -> l - r
+        Mul -> l * r
+        Div -> if r == 0 then 0 else quot(l, r)
+    Literal(num) -> num
+
+fun lit(n, ?pool) add(Literal(n))
+fun bin(op, l, r, ?pool) add(Binary(op, l, r))
 
 fun elsewhere()
-  val nodes = ref([])
-  println(eval(add(lit(4), lit(4))))
+  val pool = ref([])
+  println(interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4)))))
 
 fun main()
-  val nodes = ref([])
-  val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-  println(eval(e))
+  val pool = ref([])
+  val e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2))
+  println(interp(e))
   elsewhere()
-  println(eval(e))
+  println(interp(e))

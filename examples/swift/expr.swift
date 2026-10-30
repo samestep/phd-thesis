@@ -1,40 +1,50 @@
 // @TaskLocal: `withValue` binds the pool for the duration of a closure.
-enum Node {
-    case lit(Int)
-    case add(Int, Int)
-    case mul(Int, Int)
+enum BinOp { case add, sub, mul, div }
+
+struct ExprRef { let index: Int }
+
+enum Expr {
+    case binary(BinOp, ExprRef, ExprRef)
+    case literal(Int64)
 }
 
-final class Pool: @unchecked Sendable {
-    var nodes: [Node] = []
+final class ExprPool: @unchecked Sendable {
+    private var exprs: [Expr] = []
+
+    func add(_ expr: Expr) -> ExprRef {
+        exprs.append(expr)
+        return ExprRef(index: exprs.count - 1)
+    }
+
+    func get(_ expr: ExprRef) -> Expr { exprs[expr.index] }
 }
 
 enum Context {
-    @TaskLocal static var pool = Pool()
+    @TaskLocal static var pool = ExprPool()
 }
 
-func push(_ node: Node) -> Int {
-    Context.pool.nodes.append(node)
-    return Context.pool.nodes.count - 1
-}
-
-func lit(_ n: Int) -> Int { push(.lit(n)) }
-func add(_ l: Int, _ r: Int) -> Int { push(.add(l, r)) }
-func mul(_ l: Int, _ r: Int) -> Int { push(.mul(l, r)) }
-
-func eval(_ e: Int) -> Int {
-    switch Context.pool.nodes[e] {
-    case .lit(let n): n
-    case .add(let l, let r): eval(l) + eval(r)
-    case .mul(let l, let r): eval(l) * eval(r)
+func interp(_ expr: ExprRef) -> Int64 {
+    switch Context.pool.get(expr) {
+    case .binary(let op, let lhs, let rhs):
+        let l = interp(lhs), r = interp(rhs)
+        switch op {
+        case .add: return l &+ r
+        case .sub: return l &- r
+        case .mul: return l &* r
+        case .div: return r == 0 ? 0 : l / r
+        }
+    case .literal(let num): return num
     }
 }
 
-Context.$pool.withValue(Pool()) {
-    let e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-    print(eval(e))
-    Context.$pool.withValue(Pool()) {
-        print(eval(add(lit(4), lit(4))))
+func num(_ n: Int64) -> ExprRef { Context.pool.add(.literal(n)) }
+func bin(_ op: BinOp, _ l: ExprRef, _ r: ExprRef) -> ExprRef { Context.pool.add(.binary(op, l, r)) }
+
+Context.$pool.withValue(ExprPool()) {
+    let e = bin(.div, bin(.mul, bin(.sub, num(7), num(10)), num(7)), num(2))
+    print(interp(e))
+    Context.$pool.withValue(ExprPool()) {
+        print(interp(bin(.div, bin(.add, num(4), num(4)), bin(.sub, num(4), num(4)))))
     }
-    print(eval(e))
+    print(interp(e))
 }

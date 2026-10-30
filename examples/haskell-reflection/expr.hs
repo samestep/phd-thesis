@@ -6,9 +6,13 @@ import Data.Proxy
 import Data.Reflection
 import qualified Data.Sequence as S
 
-data Node = Lit Int | Add Int Int | Mul Int Int
+data BinOp = Add | Sub | Mul | Div
 
-type Pool = IORef (S.Seq Node)
+data Expr = Binary BinOp ExprRef ExprRef | Literal Int
+
+newtype ExprRef = ExprRef Int
+
+type ExprPool = IORef (S.Seq Expr)
 
 newtype M (s :: Type) a = M { runM :: IO a }
 
@@ -16,35 +20,45 @@ instance Functor (M s) where fmap f (M m) = M (fmap f m)
 instance Applicative (M s) where pure = M . pure; M f <*> M x = M (f <*> x)
 instance Monad (M s) where M m >>= k = M (m >>= runM . k)
 
-pool :: forall s. Reifies s Pool => M s Pool
+pool :: forall s. Reifies s ExprPool => M s ExprPool
 pool = pure (reflect (Proxy :: Proxy s))
 
-node :: Reifies s Pool => Node -> M s Int
-node n = do
+add :: Reifies s ExprPool => Expr -> M s ExprRef
+add expr = do
   p <- pool
-  M (modifyIORef p (S.|> n) >> subtract 1 . S.length <$> readIORef p)
+  M (modifyIORef p (S.|> expr) >> ExprRef . subtract 1 . S.length <$> readIORef p)
 
-lit :: Reifies s Pool => Int -> M s Int
-lit = node . Lit
+get :: Reifies s ExprPool => ExprRef -> M s Expr
+get (ExprRef i) = do
+  p <- pool
+  M ((`S.index` i) <$> readIORef p)
 
-add, mul :: Reifies s Pool => M s Int -> M s Int -> M s Int
-add l r = do x <- l; y <- r; node (Add x y)
-mul l r = do x <- l; y <- r; node (Mul x y)
+interp :: Reifies s ExprPool => ExprRef -> M s Int
+interp expr = do
+  e <- get expr
+  case e of
+    Binary op lhs rhs -> do
+      l <- interp lhs
+      r <- interp rhs
+      pure $ case op of
+        Add -> l + r
+        Sub -> l - r
+        Mul -> l * r
+        Div -> if r == 0 then 0 else l `quot` r
+    Literal num -> pure num
 
-eval :: Reifies s Pool => Int -> M s Int
-eval e = do
-  nodes <- pool >>= M . readIORef
-  case S.index nodes e of
-    Lit n -> pure n
-    Add l r -> (+) <$> eval l <*> eval r
-    Mul l r -> (*) <$> eval l <*> eval r
+lit :: Reifies s ExprPool => Int -> M s ExprRef
+lit = add . Literal
 
-withPool :: forall a. (forall s. Reifies s Pool => M s a) -> IO a
+bin :: Reifies s ExprPool => BinOp -> M s ExprRef -> M s ExprRef -> M s ExprRef
+bin op l r = do x <- l; y <- r; add (Binary op x y)
+
+withPool :: forall a. (forall s. Reifies s ExprPool => M s a) -> IO a
 withPool m = do p <- newIORef S.empty; reify p (\(_ :: Proxy s) -> runM (m :: M s a))
 
 main :: IO ()
 main = withPool $ do
-  e <- mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
-  M . print =<< eval e
-  M (withPool (add (lit 4) (lit 4) >>= eval)) >>= M . print
-  M . print =<< eval e
+  e <- bin Div (bin Mul (bin Sub (lit 7) (lit 10)) (lit 7)) (lit 2)
+  M . print =<< interp e
+  M (withPool (bin Div (bin Add (lit 4) (lit 4)) (bin Sub (lit 4) (lit 4)) >>= interp)) >>= M . print
+  M . print =<< interp e

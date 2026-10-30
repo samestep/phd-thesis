@@ -1,67 +1,79 @@
--- Backpack: `Expr` is written against a `Pool` signature and instantiated once per pool.
-unit node where
-  module Node where
-    data Node = Lit Int | Add Int Int | Mul Int Int
+-- Backpack: `Interp` is written against a `Pool` signature and instantiated once per pool.
+unit ast where
+  module Ast where
+    data BinOp = Add | Sub | Mul | Div
+    data Expr = Binary BinOp ExprRef ExprRef | Literal Int
+    newtype ExprRef = ExprRef Int
 
-unit expr where
-  dependency node
+unit interp where
+  dependency ast
   signature Pool where
     import Data.IORef
-    import Node
-    pool :: IORef [Node]
-  module Expr where
+    import Ast
+    pool :: IORef [Expr]
+  module Interp where
     import Data.IORef
-    import Node
+    import Ast
     import Pool
 
-    node :: Node -> IO Int
-    node n = do
-      modifyIORef pool (++ [n])
-      subtract 1 . length <$> readIORef pool
+    add :: Expr -> IO ExprRef
+    add expr = do
+      modifyIORef pool (++ [expr])
+      ExprRef . subtract 1 . length <$> readIORef pool
 
-    lit :: Int -> IO Int
-    lit = node . Lit
+    get :: ExprRef -> IO Expr
+    get (ExprRef i) = (!! i) <$> readIORef pool
 
-    add, mul :: IO Int -> IO Int -> IO Int
-    add l r = do x <- l; y <- r; node (Add x y)
-    mul l r = do x <- l; y <- r; node (Mul x y)
+    interp :: ExprRef -> IO Int
+    interp expr = do
+      e <- get expr
+      case e of
+        Binary op lhs rhs -> do
+          l <- interp lhs
+          r <- interp rhs
+          pure $ case op of
+            Add -> l + r
+            Sub -> l - r
+            Mul -> l * r
+            Div -> if r == 0 then 0 else l `quot` r
+        Literal num -> pure num
 
-    eval :: Int -> IO Int
-    eval e = do
-      nodes <- readIORef pool
-      case nodes !! e of
-        Lit n -> pure n
-        Add l r -> (+) <$> eval l <*> eval r
-        Mul l r -> (*) <$> eval l <*> eval r
+    lit :: Int -> IO ExprRef
+    lit = add . Literal
+
+    bin :: BinOp -> IO ExprRef -> IO ExprRef -> IO ExprRef
+    bin op l r = do x <- l; y <- r; add (Binary op x y)
 
 unit pools where
-  dependency node
+  dependency ast
   module PoolA where
     import Data.IORef
     import System.IO.Unsafe
-    import Node
+    import Ast
     {-# NOINLINE pool #-}
-    pool :: IORef [Node]
+    pool :: IORef [Expr]
     pool = unsafePerformIO (newIORef [])
   module PoolB where
     import Data.IORef
     import System.IO.Unsafe
-    import Node
+    import Ast
     {-# NOINLINE pool #-}
-    pool :: IORef [Node]
+    pool :: IORef [Expr]
     pool = unsafePerformIO (newIORef [])
 
 unit main where
+  dependency ast
   dependency pools
-  dependency expr[Pool=pools:PoolA] (Expr as A)
-  dependency expr[Pool=pools:PoolB] (Expr as B)
+  dependency interp[Pool=pools:PoolA] (Interp as A)
+  dependency interp[Pool=pools:PoolB] (Interp as B)
   module Main where
+    import Ast (BinOp (..))
     import qualified A
     import qualified B
 
     main :: IO ()
     main = do
-      e <- A.mul (A.add (A.lit 1) (A.lit 2)) (A.add (A.lit 3) (A.lit 4))
-      print =<< A.eval e
-      print =<< B.eval =<< B.add (B.lit 4) (B.lit 4)
-      print =<< A.eval e
+      e <- A.bin Div (A.bin Mul (A.bin Sub (A.lit 7) (A.lit 10)) (A.lit 7)) (A.lit 2)
+      print =<< A.interp e
+      print =<< B.interp =<< B.bin Div (B.bin Add (B.lit 4) (B.lit 4)) (B.bin Sub (B.lit 4) (B.lit 4))
+      print =<< A.interp e

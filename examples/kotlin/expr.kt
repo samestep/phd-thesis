@@ -1,33 +1,47 @@
 // Context parameters: the pool is an implicit argument resolved from the caller's context.
-sealed interface Node
-data class Lit(val n: Long) : Node
-data class Add(val l: Int, val r: Int) : Node
-data class Mul(val l: Int, val r: Int) : Node
+enum class BinOp { Add, Sub, Mul, Div }
 
-class Pool(val nodes: MutableList<Node> = mutableListOf())
+@JvmInline value class ExprRef(val index: Int)
 
-context(pool: Pool) fun push(node: Node): Int {
-    pool.nodes.add(node)
-    return pool.nodes.size - 1
+sealed interface Expr
+data class Binary(val op: BinOp, val lhs: ExprRef, val rhs: ExprRef) : Expr
+data class Literal(val num: Long) : Expr
+
+class ExprPool {
+    private val exprs = mutableListOf<Expr>()
+
+    fun add(expr: Expr): ExprRef {
+        exprs.add(expr)
+        return ExprRef(exprs.size - 1)
+    }
+
+    fun get(expr: ExprRef): Expr = exprs[expr.index]
 }
 
-context(_: Pool) fun lit(n: Long) = push(Lit(n))
-context(_: Pool) fun add(l: Int, r: Int) = push(Add(l, r))
-context(_: Pool) fun mul(l: Int, r: Int) = push(Mul(l, r))
-
-context(pool: Pool) fun eval(e: Int): Long = when (val node = pool.nodes[e]) {
-    is Lit -> node.n
-    is Add -> eval(node.l) + eval(node.r)
-    is Mul -> eval(node.l) * eval(node.r)
+context(pool: ExprPool) fun interp(expr: ExprRef): Long = when (val e = pool.get(expr)) {
+    is Binary -> {
+        val l = interp(e.lhs)
+        val r = interp(e.rhs)
+        when (e.op) {
+            BinOp.Add -> l + r
+            BinOp.Sub -> l - r
+            BinOp.Mul -> l * r
+            BinOp.Div -> if (r == 0L) 0 else l / r
+        }
+    }
+    is Literal -> e.num
 }
+
+context(pool: ExprPool) fun num(n: Long) = pool.add(Literal(n))
+context(pool: ExprPool) fun bin(op: BinOp, l: ExprRef, r: ExprRef) = pool.add(Binary(op, l, r))
 
 fun main() {
-    with(Pool()) {
-        val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-        println(eval(e))
-        with(Pool()) {
-            println(eval(add(lit(4), lit(4))))
+    with(ExprPool()) {
+        val e = bin(BinOp.Div, bin(BinOp.Mul, bin(BinOp.Sub, num(7), num(10)), num(7)), num(2))
+        println(interp(e))
+        with(ExprPool()) {
+            println(interp(bin(BinOp.Div, bin(BinOp.Add, num(4), num(4)), bin(BinOp.Sub, num(4), num(4)))))
         }
-        println(eval(e))
+        println(interp(e))
     }
 }

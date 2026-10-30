@@ -1,24 +1,30 @@
 ;; Dynamic var: `binding` rebinds the pool for the dynamic extent of a form.
 (def ^:dynamic *pool*)
 
-(defn push [node]
-  (swap! *pool* conj node)
+;; An expression is [:binary op lhs rhs] or [:literal num]; an ExprRef is its index.
+(defn add [expr]
+  (swap! *pool* conj expr)
   (dec (count @*pool*)))
 
-(defn lit [n] (push [:lit n]))
-(defn add [l r] (push [:add l r]))
-(defn mul [l r] (push [:mul l r]))
+(defn get-expr [expr] (nth @*pool* expr))
 
-(defn eval-expr [e]
-  (let [[op a b] (nth @*pool* e)]
-    (case op
-      :lit a
-      :add (+ (eval-expr a) (eval-expr b))
-      :mul (* (eval-expr a) (eval-expr b)))))
+(defn interp [expr]
+  (let [[kind a b c] (get-expr expr)]
+    (case kind
+      :binary (let [l (interp b) r (interp c)]
+                (case a
+                  :add (unchecked-add l r)
+                  :sub (unchecked-subtract l r)
+                  :mul (unchecked-multiply l r)
+                  :div (if (zero? r) 0 (quot l r))))
+      :literal a)))
+
+(defn lit [n] (add [:literal n]))
+(defn bin [op l r] (add [:binary op l r]))
 
 (binding [*pool* (atom [])]
-  (let [e (mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4)))]
-    (println (eval-expr e))
+  (let [e (bin :div (bin :mul (bin :sub (lit 7) (lit 10)) (lit 7)) (lit 2))]
+    (println (interp e))
     (binding [*pool* (atom [])]
-      (println (eval-expr (add (lit 4) (lit 4)))))
-    (println (eval-expr e))))
+      (println (interp (bin :div (bin :add (lit 4) (lit 4)) (bin :sub (lit 4) (lit 4))))))
+    (println (interp e))))

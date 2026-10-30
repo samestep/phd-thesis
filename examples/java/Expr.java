@@ -1,40 +1,54 @@
 // ScopedValue: the pool is bound for the dynamic extent of a call.
 import java.util.ArrayList;
 
-sealed interface Node permits Lit, Add, Mul {}
-record Lit(long n) implements Node {}
-record Add(int l, int r) implements Node {}
-record Mul(int l, int r) implements Node {}
+class Main {
+    static final ScopedValue<ExprPool> POOL = ScopedValue.newInstance();
 
-class Expr {
-    static final ScopedValue<ArrayList<Node>> POOL = ScopedValue.newInstance();
-
-    static int push(Node node) {
-        var pool = POOL.get();
-        pool.add(node);
-        return pool.size() - 1;
-    }
-
-    static int lit(long n) { return push(new Lit(n)); }
-    static int add(int l, int r) { return push(new Add(l, r)); }
-    static int mul(int l, int r) { return push(new Mul(l, r)); }
-
-    static long eval(int e) {
-        return switch (POOL.get().get(e)) {
-            case Lit(var n) -> n;
-            case Add(var l, var r) -> eval(l) + eval(r);
-            case Mul(var l, var r) -> eval(l) * eval(r);
+    static long interp(ExprRef expr) {
+        return switch (POOL.get().get(expr)) {
+            case Binary(var op, var lhs, var rhs) -> {
+                long l = interp(lhs), r = interp(rhs);
+                yield switch (op) {
+                    case ADD -> l + r;
+                    case SUB -> l - r;
+                    case MUL -> l * r;
+                    case DIV -> r == 0 ? 0 : l / r;
+                };
+            }
+            case Literal(var num) -> num;
         };
     }
 
+    static ExprRef num(long n) { return POOL.get().add(new Literal(n)); }
+    static ExprRef bin(BinOp op, ExprRef l, ExprRef r) { return POOL.get().add(new Binary(op, l, r)); }
+
     public static void main(String[] args) {
-        ScopedValue.where(POOL, new ArrayList<>()).run(() -> {
-            int e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-            System.out.println(eval(e));
-            ScopedValue.where(POOL, new ArrayList<>()).run(() -> {
-                System.out.println(eval(add(lit(4), lit(4))));
+        ScopedValue.where(POOL, new ExprPool()).run(() -> {
+            var e = bin(BinOp.DIV, bin(BinOp.MUL, bin(BinOp.SUB, num(7), num(10)), num(7)), num(2));
+            System.out.println(interp(e));
+            ScopedValue.where(POOL, new ExprPool()).run(() -> {
+                System.out.println(interp(bin(BinOp.DIV, bin(BinOp.ADD, num(4), num(4)), bin(BinOp.SUB, num(4), num(4)))));
             });
-            System.out.println(eval(e));
+            System.out.println(interp(e));
         });
     }
+}
+
+enum BinOp { ADD, SUB, MUL, DIV }
+
+record ExprRef(int index) {}
+
+sealed interface Expr permits Binary, Literal {}
+record Binary(BinOp op, ExprRef lhs, ExprRef rhs) implements Expr {}
+record Literal(long num) implements Expr {}
+
+class ExprPool {
+    final ArrayList<Expr> exprs = new ArrayList<>();
+
+    ExprRef add(Expr expr) {
+        exprs.add(expr);
+        return new ExprRef(exprs.size() - 1);
+    }
+
+    Expr get(ExprRef expr) { return exprs.get(expr.index()); }
 }

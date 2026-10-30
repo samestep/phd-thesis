@@ -1,46 +1,59 @@
 // A thread_local pool pointer, swapped by an RAII scope guard.
+#include <cstdint>
 #include <iostream>
+#include <variant>
 #include <vector>
 
-enum class Op { Lit, Add, Mul };
-struct Node { Op op; long a, b; };
-using Pool = std::vector<Node>;
+enum class BinOp { Add, Sub, Mul, Div };
+using ExprRef = std::uint32_t;
+struct Binary { BinOp op; ExprRef lhs, rhs; };
+struct Literal { std::int64_t num; };
+using Expr = std::variant<Binary, Literal>;
 
-thread_local Pool *pool;
+struct ExprPool {
+  std::vector<Expr> exprs;
+  ExprRef add(Expr expr) {
+    exprs.push_back(expr);
+    return exprs.size() - 1;
+  }
+  Expr get(ExprRef expr) const { return exprs[expr]; }
+};
+
+thread_local ExprPool *pool;
 
 struct Using {
-  Pool *saved = pool;
-  explicit Using(Pool &p) { pool = &p; }
+  ExprPool *saved = pool;
+  explicit Using(ExprPool &p) { pool = &p; }
   ~Using() { pool = saved; }
 };
 
-long push(Op op, long a, long b) {
-  pool->push_back({op, a, b});
-  return pool->size() - 1;
-}
-
-long lit(long n) { return push(Op::Lit, n, 0); }
-long add(long l, long r) { return push(Op::Add, l, r); }
-long mul(long l, long r) { return push(Op::Mul, l, r); }
-
-long eval(long e) {
-  auto [op, a, b] = (*pool)[e];
+std::int64_t interp(ExprRef expr) {
+  Expr e = pool->get(expr);
+  if (auto *literal = std::get_if<Literal>(&e)) return literal->num;
+  auto [op, l, r] = std::get<Binary>(e);
+  // Wrapping arithmetic, through unsigned integers.
+  std::uint64_t lhs = interp(l), rhs = interp(r);
   switch (op) {
-  case Op::Lit: return a;
-  case Op::Add: return eval(a) + eval(b);
-  default: return eval(a) * eval(b);
+  case BinOp::Add: return lhs + rhs;
+  case BinOp::Sub: return lhs - rhs;
+  case BinOp::Mul: return lhs * rhs;
+  default: return rhs ? std::int64_t(lhs) / std::int64_t(rhs) : 0;
   }
 }
+
+ExprRef lit(std::int64_t n) { return pool->add(Literal{n}); }
+ExprRef bin(BinOp op, ExprRef lhs, ExprRef rhs) { return pool->add(Binary{op, lhs, rhs}); }
 
 int main() {
-  Pool a;
+  using enum BinOp;
+  ExprPool a;
   Using in_a(a);
-  long e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)));
-  std::cout << eval(e) << "\n";
+  ExprRef e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2));
+  std::cout << interp(e) << "\n";
   {
-    Pool b;
+    ExprPool b;
     Using in_b(b);
-    std::cout << eval(add(lit(4), lit(4))) << "\n";
+    std::cout << interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4)))) << "\n";
   }
-  std::cout << eval(e) << "\n";
+  std::cout << interp(e) << "\n";
 }

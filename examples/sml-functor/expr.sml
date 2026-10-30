@@ -1,25 +1,37 @@
 (* An ML functor: the pool is a structure argument, applied once per pool. *)
-datatype node = Lit of int | Add of int * int | Mul of int * int
+datatype binop = Add | Sub | Mul | Div
+datatype expr_ref = ExprRef of int
+datatype expr = Binary of binop * expr_ref * expr_ref | Literal of int
 
-functor Expr (P : sig val pool : node list ref end) = struct
-  fun node n = (P.pool := !P.pool @ [n]; length (!P.pool) - 1)
-  fun lit n = node (Lit n)
-  fun add (l, r) = node (Add (l, r))
-  fun mul (l, r) = node (Mul (l, r))
+functor Interp (P : sig val pool : expr list ref end) = struct
+  fun add expr = (P.pool := !P.pool @ [expr]; ExprRef (length (!P.pool) - 1))
+  fun get (ExprRef i) = List.nth (!P.pool, i)
 
-  fun eval e =
-    case List.nth (!P.pool, e) of
-      Lit n => n
-    | Add (l, r) => eval l + eval r
-    | Mul (l, r) => eval l * eval r
+  fun interp expr =
+    case get expr of
+      Binary (oper, lhs, rhs) =>
+        let val l = interp lhs val r = interp rhs in
+          case oper of
+            Add => l + r
+          | Sub => l - r
+          | Mul => l * r
+          | Div => if r = 0 then 0 else Int.quot (l, r)
+        end
+    | Literal num => num
+
+  fun lit n = add (Literal n)
+  fun bin (oper, l, r) = add (Binary (oper, l, r))
 end
 
-structure A = Expr (struct val pool = ref [] end)
-val e = A.mul (A.add (A.lit 1, A.lit 2), A.add (A.lit 3, A.lit 4))
-val () = print (Int.toString (A.eval e) ^ "\n")
+(* SML writes negative numbers with `~`. *)
+fun show n = (if n < 0 then "-" ^ Int.toString (~n) else Int.toString n) ^ "\n"
+
+structure A = Interp (struct val pool = ref [] end)
+val e = A.bin (Div, A.bin (Mul, A.bin (Sub, A.lit 7, A.lit 10), A.lit 7), A.lit 2)
+val () = print (show (A.interp e))
 local
-  structure B = Expr (struct val pool = ref [] end)
+  structure B = Interp (struct val pool = ref [] end)
 in
-  val () = print (Int.toString (B.eval (B.add (B.lit 4, B.lit 4))) ^ "\n")
+  val () = print (show (B.interp (B.bin (Div, B.bin (Add, B.lit 4, B.lit 4), B.bin (Sub, B.lit 4, B.lit 4)))))
 end
-val () = print (Int.toString (A.eval e) ^ "\n")
+val () = print (show (A.interp e))

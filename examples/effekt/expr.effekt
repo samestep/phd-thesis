@@ -1,41 +1,53 @@
-// The pool is an effect; handlers are lexical, so `do push` finds the nearest `withPool`.
-type Node {
-  Lit(n: Int)
-  Add(l: Int, r: Int)
-  Mul(l: Int, r: Int)
+// The pool is an effect; handlers are lexical, so `do add` finds the nearest `withPool`.
+type BinOp {
+  Add()
+  Sub()
+  Mul()
+  Div()
 }
 
-interface Pool {
-  def push(n: Node): Int
-  def get(i: Int): Node
+type Expr {
+  Binary(op: BinOp, lhs: Int, rhs: Int)
+  Literal(num: Int)
 }
 
-def lit(n: Int): Int / Pool = do push(Lit(n))
-def add(l: Int, r: Int): Int / Pool = do push(Add(l, r))
-def mul(l: Int, r: Int): Int / Pool = do push(Mul(l, r))
-
-def eval(e: Int): Int / Pool = do get(e) match {
-  case Lit(n) => n
-  case Add(l, r) => eval(l) + eval(r)
-  case Mul(l, r) => eval(l) * eval(r)
+interface ExprPool {
+  def add(e: Expr): Int
+  def get(r: Int): Expr
 }
 
-def at(xs: List[Node], i: Int): Node = xs match {
+def interp(e: Int): Int / ExprPool = do get(e) match {
+  case Binary(op, lhs, rhs) =>
+    val l = interp(lhs)
+    val r = interp(rhs)
+    op match {
+      case Add() => l + r
+      case Sub() => l - r
+      case Mul() => l * r
+      case Div() => if (r == 0) 0 else l / r
+    }
+  case Literal(num) => num
+}
+
+def at(xs: List[Expr], i: Int): Expr = xs match {
   case Cons(x, rest) => if (i == 0) x else at(rest, i - 1)
-  case Nil() => Lit(0)
+  case Nil() => Literal(0)
 }
 
-def withPool[R] { prog: => R / Pool }: R = {
-  var nodes: List[Node] = Nil()
-  try prog() with Pool {
-    def push(n) = { nodes = nodes.append([n]); resume(nodes.size - 1) }
+def withPool[R] { prog: => R / ExprPool }: R = {
+  var nodes: List[Expr] = Nil()
+  try prog() with ExprPool {
+    def add(e) = { nodes = nodes.append([e]); resume(nodes.size - 1) }
     def get(i) = resume(at(nodes, i))
   }
 }
 
+def lit(n: Int): Int / ExprPool = do add(Literal(n))
+def bin(op: BinOp, l: Int, r: Int): Int / ExprPool = do add(Binary(op, l, r))
+
 def main() = withPool {
-  val e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-  println(eval(e))
-  withPool { println(eval(add(lit(4), lit(4)))) }
-  println(eval(e))
+  val e = bin(Div(), bin(Mul(), bin(Sub(), lit(7), lit(10)), lit(7)), lit(2))
+  println(interp(e))
+  withPool { println(interp(bin(Div(), bin(Add(), lit(4), lit(4)), bin(Sub(), lit(4), lit(4))))) }
+  println(interp(e))
 }

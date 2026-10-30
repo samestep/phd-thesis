@@ -5,75 +5,119 @@ import "./lib/wasip1.moss" use Wasi;
 
 assume Std {
   # region: types
+  unit Add;
+  unit Sub;
+  unit Mul;
+  unit Div;
+
+  type BinOp = Add | Sub | Mul | Div;
+
   # An expression is just an index into a pool of nodes.
-  type Expr Int;
+  type ExprRef Int;
 
-  type Lit Int;
-  type Add { l: Expr, r: Expr };
-  type Mul { l: Expr, r: Expr };
+  type Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
+  type Literal Int;
 
-  type Node = | Lit | Add | Mul;
+  type Expr = Binary | Literal;
 
   # The pool: one row per node, across parallel lists.
-  val ops: IntList;
-  val lhs: IntList;
-  val rhs: IntList;
+  type ExprPool { ops: IntList, lhs: IntList, rhs: IntList };
 
-  context Pool = ops, lhs, rhs;
+  val pool: ExprPool;
   # endregion
 
-  assume Pool {
-    # region: accessors
-    fn Expr.id(): Int {
-      match this { Expr i => i }
+  assume pool {
+    # region: pool
+    fn ExprRef.index(): Int {
+      match this { ExprRef i => i }
     }
 
-    fn Expr.node(): Node {
-      let i = this.id();
-      let l = Expr (lhs.get(i));
-      let r = Expr (rhs.get(i));
-      let code = ops.get(i);
+    fn add(expr: Expr): ExprRef {
+      let i = pool.ops.length();
+      match expr {
+        Binary { op, lhs, rhs } => {
+          pool.ops.push(op_code(op));
+          pool.lhs.push(lhs.index());
+          pool.rhs.push(rhs.index());
+        },
+        Literal num => {
+          pool.ops.push(zero);
+          pool.lhs.push(num);
+          pool.rhs.push(zero);
+        },
+      }
+      ExprRef (i)
+    }
+
+    fn get(expr: ExprRef): Expr {
+      let i = expr.index();
+      let code = pool.ops.get(i);
       if code.eq(zero) {
-        Lit (lhs.get(i))
-      } else if code.eq(one) {
-        Add { l, r }
+        Literal (pool.lhs.get(i))
       } else {
-        Mul { l, r }
+        Binary {
+          op = op_of(code),
+          lhs = ExprRef (pool.lhs.get(i)),
+          rhs = ExprRef (pool.rhs.get(i)),
+        }
       }
     }
     # endregion
 
-    # region: eval
-    fn Expr.eval(): Int {
-      match this.node() {
-        Lit n => n,
-        Add { l, r } => l.eval().add(r.eval()),
-        Mul { l, r } => l.eval().mul(r.eval()),
+    # region: interp
+    fn ExprRef.interp(): Int {
+      match get(this) {
+        Binary { op, lhs, rhs } => {
+          let l = lhs.interp();
+          let r = rhs.interp();
+          match op {
+            Add => l.add(r),
+            Sub => l.sub(r),
+            Mul => l.mul(r),
+            Div => if r.eq(zero) { zero } else { l.div(r) },
+          }
+        },
+        Literal num => num,
       }
     }
     # endregion
 
-    # region: build
-    fn node(op: Int, a: Int, b: Int): Expr {
-      let id = ops.length();
-      ops.push(op);
-      lhs.push(a);
-      rhs.push(b);
-      Expr (id)
-    }
+    fn lit(n: Int): ExprRef { add(Literal (n)) }
+    fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef { add(Binary { op, lhs, rhs }) }
 
-    fn lit(n: Int): Expr { node(zero, n, zero) }
-    fn add(l: Expr, r: Expr): Expr { node(one, l.id(), r.id()) }
-    fn mul(l: Expr, r: Expr): Expr { node(one.add(one), l.id(), r.id()) }
-    # endregion
-
-    fn report(e: Expr) {
-      print_int(e.eval());
+    fn report(e: ExprRef) {
+      print_int(e.interp());
       putchar(char::newline);
     }
   }
 
+  fn op_code(op: BinOp): Int {
+    match op {
+      Add => one,
+      Sub => one.add(one),
+      Mul => one.add(one).add(one),
+      Div => one.shl(one.add(one)),
+    }
+  }
+
+  fn op_of(code: Int): BinOp {
+    if code.eq(one) {
+      Add
+    } else if code.eq(one.add(one)) {
+      Sub
+    } else if code.eq(one.add(one).add(one)) {
+      Mul
+    } else {
+      Div
+    }
+  }
+
   fn print_int(n: Int) {
+    if n.lt(zero) {
+      putchar(char::hyphen);
+      print_int(zero.sub(n));
+      return ();
+    }
     let ten = one.shl(one.add(one).add(one)).add(one.add(one));
     if n.ge(ten) { print_int(n.div(ten)); }
     putchar(n.rem(ten).add(char::digit0.code()).char());
@@ -81,17 +125,17 @@ assume Std {
 
   # region: main
   fn elsewhere() {
-    bind ops = int_list(), lhs = int_list(), rhs = int_list();
+    bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
     let four = one.shl(one.add(one));
-    report(add(lit(four), lit(four)));
+    report(bin(Div, bin(Add, lit(four), lit(four)), bin(Sub, lit(four), lit(four))));
   }
 
   fn demo() {
-    bind ops = int_list(), lhs = int_list(), rhs = int_list();
+    bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
     let two = one.add(one);
-    let three = two.add(one);
-    let four = two.add(two);
-    let e = mul(add(lit(one), lit(two)), add(lit(three), lit(four)));
+    let seven = two.shl(two).sub(one);
+    let ten = seven.add(two).add(one);
+    let e = bin(Div, bin(Mul, bin(Sub, lit(seven), lit(ten)), lit(seven)), lit(two));
     report(e);
     elsewhere();
     report(e);

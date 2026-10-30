@@ -1,23 +1,42 @@
 # A ScopedValue, rebound with `with`.
 using Base.ScopedValues
 
-const pool = ScopedValue{Vector{Tuple}}()
+@enum BinOp Add Sub Mul Div
+const ExprRef = Int
 
-node(n...) = (push!(pool[], n); length(pool[]))
-lit(n) = node(:lit, n)
-add(l, r) = node(:add, l, r)
-mul(l, r) = node(:mul, l, r)
+struct Binary
+    op::BinOp
+    lhs::ExprRef
+    rhs::ExprRef
+end
+struct Literal
+    num::Int
+end
+const Expr = Union{Binary,Literal}
 
-function ev(e)
-    op, a, b... = pool[][e]
-    op == :lit ? a : op == :add ? ev(a) + ev(b[1]) : ev(a) * ev(b[1])
+const pool = ScopedValue{Vector{Expr}}()
+
+add!(expr) = (push!(pool[], expr); length(pool[]))
+getexpr(ref) = pool[][ref]
+
+function interp(ref)
+    expr = getexpr(ref)
+    expr isa Literal && return expr.num
+    l, r = interp(expr.lhs), interp(expr.rhs)
+    expr.op == Add ? l + r :
+    expr.op == Sub ? l - r :
+    expr.op == Mul ? l * r :
+    r == 0 ? 0 : div(l, r)
 end
 
-with(pool => Tuple[]) do
-    e = mul(add(lit(1), lit(2)), add(lit(3), lit(4)))
-    println(ev(e))
-    with(pool => Tuple[]) do
-        println(ev(add(lit(4), lit(4))))
+lit(n) = add!(Literal(n))
+bin(op, l, r) = add!(Binary(op, l, r))
+
+with(pool => Expr[]) do
+    e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2))
+    println(interp(e))
+    with(pool => Expr[]) do
+        println(interp(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4)))))
     end
-    println(ev(e))
+    println(interp(e))
 end

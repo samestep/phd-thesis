@@ -1,36 +1,47 @@
 // The pool is an effect; `with_pool` handles it for one computation.
 import Std.Vec.Vec, empty, push, len, get_unchecked
 
-type Node =
-   | Lit I64
-   | Plus Usz Usz
-   | Times Usz Usz
+// Not Add/Sub/Mul/Div: those names are the prelude's operator traits.
+type BinOp =
+   | Plus
+   | Minus
+   | Times
+   | Divide
 
-effect Pool =
-    push_node: fn Node -> Usz
-    get_node: fn Usz -> Node
+type Expr =
+   | Binary BinOp Usz Usz
+   | Literal I64
 
-lit (n: I64): Usz can Pool = push_node (Lit n)
-add (l: Usz) (r: Usz): Usz can Pool = push_node (Plus l r)
-mul (l: Usz) (r: Usz): Usz can Pool = push_node (Times l r)
+effect ExprPool =
+    add: fn Expr -> Usz
+    get: fn Usz -> Expr
 
-eval (e: Usz): I64 can Pool =
-    match get_node e
-    | Lit n -> n
-    | Plus l r -> eval l + eval r
-    | Times l r -> eval l * eval r
+interp (e: Usz): I64 can ExprPool =
+    match get e
+    | Binary op lhs rhs ->
+        l = interp lhs
+        r = interp rhs
+        match op
+        | Plus -> l + r
+        | Minus -> l - r
+        | Times -> l * r
+        | Divide -> if r == 0 then 0 else l / r
+    | Literal num -> num
 
-with_pool (f: fn Unit => a can Pool): a =
+with_pool (f: fn Unit => a can ExprPool): a =
     var nodes = Vec.empty ()
     handler h for
-    | push_node n ->
-        nodes.push n
+    | add e ->
+        nodes.push e
         resume (nodes.len - 1usz)
-    | get_node i -> resume (nodes.get_unchecked i |> deref)
+    | get i -> resume (nodes.get_unchecked i |> deref)
     in f ()
 
+lit (n: I64): Usz can ExprPool = add (Literal n)
+bin (op: BinOp) (l: Usz) (r: Usz): Usz can ExprPool = add (Binary op l r)
+
 main () = with_pool fn () ->
-    e = mul (add (lit 1) (lit 2)) (add (lit 3) (lit 4))
-    println (eval e)
-    with_pool fn () -> println (eval (add (lit 4) (lit 4)))
-    println (eval e)
+    e = bin Divide (bin Times (bin Minus (lit 7) (lit 10)) (lit 7)) (lit 2)
+    println (interp e)
+    with_pool fn () -> println (interp (bin Divide (bin Plus (lit 4) (lit 4)) (bin Minus (lit 4) (lit 4))))
+    println (interp e)
