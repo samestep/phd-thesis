@@ -25,6 +25,5 @@ in
     granule
     pkgs.z3
   ];
-  # The default 10s SMT solver timeout is too tight for `quot` on slower machines.
-  run = "gr --no-info --no-print-return-value --solver-timeout 60000 expr.gr";
+  run = "gr --no-info --no-print-return-value expr.gr";
 }
