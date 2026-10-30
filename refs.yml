@@ -1,0 +1,7 @@
+sampson2023:
+  type: blog
+  title: Flattening ASTs (and Other Compiler Data Structures)
+  date: 2023
+  author:
+    - Sampson, Adrian
+  url: https://www.cs.cornell.edu/~asampson/blog/flattening.html

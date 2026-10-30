@@ -2,7 +2,7 @@
 
 = Introduction
 
-In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one.
+In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
 
 #snippet("examples/moss/expr.moss", region: "eval")
 
@@ -44,3 +44,5 @@ The Wasm binaries for the Tier 2 and Tier 3 compilers are bytewise identical.
 = Proposed work
 
 == Performance experiments
+
+#bibliography("refs.yml")
