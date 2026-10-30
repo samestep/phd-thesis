@@ -1,0 +1,119 @@
+-- Coeffects over a dictionary: nothing is implicit, so `Ast p r` (a representation's `add` and
+-- `get`, generic in its pool type `p` and index type `r`) is passed by hand with every pool.
+data Bool = False | True
+
+data List a = Nil | Cons a (List a)
+
+data BinOp = Add | Sub | Mul | Div
+
+data Expr r = Binary BinOp (r []) (r []) | Literal Int
+
+data Ast p r = Ast ((Expr r) [] -> p [] -> (r [], p [])) (r [] -> p [] -> Expr r)
+
+nth : Int [] -> (List (Int [])) [] -> Int
+nth [_] [Nil] = 0;
+nth [i] [(Cons [x] xs)] = if i == 0 then x else nth [i - 1] [xs]
+
+sign : Int [] -> Int
+sign [x] = if x < 0 then 0 - 1 else 1
+
+absI : Int [] -> Int
+absI [x] = sign [x] * x
+
+-- Granule's `div` floors; the post's division truncates toward zero.
+quot : Int [] -> Int [] -> Int
+quot [x] [y] =
+  if y == 0 then 0 else sign [x] * sign [y] * div (absI [x]) (absI [y])
+
+apply : BinOp -> Int [] -> Int [] -> Int
+apply Add [l] [r] = l + r;
+apply Sub [l] [r] = l - r;
+apply Mul [l] [r] = l * r;
+apply Div [l] [r] = quot [l] [r]
+
+interp : forall {p : Type, r : Type} . (Ast p r) [] -> r [] -> p [] -> Int
+interp [(Ast add get)] [e] [pool] = case get [e] [pool] of
+  Binary op [lhs] [rhs] ->
+    apply op [interp [Ast add get] [lhs] [pool]] [interp [Ast add get] [rhs] [pool]];
+  Literal num -> num
+
+lit : forall {p : Type, r : Type} . (Ast p r) [] -> Int [] -> p [] -> (r [], p [])
+lit [(Ast add _)] [n] = add [Literal n]
+
+bin : forall {p : Type, r : Type} . (Ast p r) [] -> BinOp [] -> r [] -> r [] -> p [] -> (r [], p [])
+bin [(Ast add _)] [op] [l] [r] = add [Binary op [l] [r]]
+
+code : BinOp -> Int
+code Add = 1;
+code Sub = 2;
+code Mul = 3;
+code Div = 4
+
+opOf : Int [] -> BinOp
+opOf [1] = Add;
+opOf [2] = Sub;
+opOf [3] = Mul;
+opOf [_] = Div
+
+-- Representation 1: a node is an index into parallel lists (newest first, and how many).
+data Idx = Idx Int
+
+data Columns = Columns (List (Int [])) (List (Int [])) (List (Int [])) (Int [])
+
+columnsAdd : (Expr Idx) [] -> Columns [] -> (Idx [], Columns [])
+columnsAdd [(Binary op [(Idx l)] [(Idx r)])] [(Columns ops ls rs [k])] =
+  ([Idx k], [Columns (Cons [code op] ops) (Cons [l] ls) (Cons [r] rs) [k + 1]]);
+columnsAdd [(Literal num)] [(Columns ops ls rs [k])] =
+  ([Idx k], [Columns (Cons [0] ops) (Cons [num] ls) (Cons [0] rs) [k + 1]])
+
+columnsGet : Idx [] -> Columns [] -> Expr Idx
+columnsGet [(Idx i)] [(Columns ops ls rs [k])] =
+  let [j] = [k - 1 - i]
+  in if nth [j] [ops] == 0 then Literal (nth [j] [ls])
+     else Binary (opOf [nth [j] [ops]]) [Idx (nth [j] [ls])] [Idx (nth [j] [rs])]
+
+columns : (Ast Columns Idx) []
+columns = [Ast columnsAdd columnsGet]
+
+-- Representation 2: a node is an index into one list of triples (newest first, and how many).
+data Slot = Slot Int
+
+data Triples = Triples (List (Int [])) (Int [])
+
+triplesAdd : (Expr Slot) [] -> Triples [] -> (Slot [], Triples [])
+triplesAdd [(Binary op [(Slot l)] [(Slot r)])] [(Triples t [k])] =
+  ([Slot k], [Triples (Cons [code op] (Cons [l] (Cons [r] t))) [k + 1]]);
+triplesAdd [(Literal num)] [(Triples t [k])] =
+  ([Slot k], [Triples (Cons [0] (Cons [num] (Cons [0] t))) [k + 1]])
+
+triplesGet : Slot [] -> Triples [] -> Expr Slot
+triplesGet [(Slot i)] [(Triples t [k])] =
+  let [j] = [3 * (k - 1 - i)]
+  in if nth [j] [t] == 0 then Literal (nth [j + 1] [t])
+     else Binary (opOf [nth [j] [t]]) [Slot (nth [j + 1] [t])] [Slot (nth [j + 2] [t])]
+
+triples : (Ast Triples Slot) []
+triples = [Ast triplesAdd triplesGet]
+
+main : () <{Stdout}>
+main =
+  let (a, p) = lit columns [7] [Columns Nil Nil Nil [0]];
+      (b, p) = lit columns [10] p;
+      (s, p) = bin columns [Sub] a b p;
+      (c, p) = lit columns [7] p;
+      (m, p) = bin columns [Mul] s c p;
+      (d, p) = lit columns [2] p;
+      (e, p) = bin columns [Div] m d p;
+      [e] = e;
+      [p] = p;
+      inner = (let (x, q) = lit triples [4] [Triples Nil [0]];
+                   (y, q) = lit triples [4] q;
+                   (n, q) = bin triples [Add] x y q;
+                   (z, q) = lit triples [4] q;
+                   (w, q) = lit triples [4] q;
+                   (o, q) = bin triples [Sub] z w q;
+                   (f, q) = bin triples [Div] n o q
+               in interp triples f q)
+  in toStdout (stringAppend (showInt (interp columns [e] [p])) (stringAppend "\n"
+       (stringAppend (showInt inner) (stringAppend "\n"
+       (stringAppend (showInt (interp columns [e] [p])) "\n")))))

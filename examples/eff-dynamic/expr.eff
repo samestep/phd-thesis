@@ -1,0 +1,75 @@
+(* The pool is an effect, but Eff's effect signatures can't take a type
+   parameter (and there are no modules to abstract one), so the index type is
+   fixed at `int` for every representation; only the handler changes. *)
+type binop = Add | Sub | Mul | Div
+type expr = Binary of binop * int * int | Literal of int
+
+effect PoolAdd : expr -> int
+effect PoolGet : int -> expr
+
+let add e = perform (PoolAdd e)
+let get r = perform (PoolGet r)
+
+let rec interp e =
+  match get e with
+  | Binary (op, lhs, rhs) ->
+    let l = interp lhs in
+    let r = interp rhs in
+    (match op with
+     | Add -> l + r
+     | Sub -> l - r
+     | Mul -> l * r
+     | Div -> if r = 0 then 0 else l / r)
+  | Literal num -> num
+
+let lit n = add (Literal n)
+let bin op l r = add (Binary (op, l, r))
+let show n = print_string (string_of_int n ^ "\n")
+
+let code = function Add -> 1 | Sub -> 2 | Mul -> 3 | Div -> 4
+let op_of = function 1 -> Add | 2 -> Sub | 3 -> Mul | _ -> Div
+
+let rec nth (x :: xs) i = if i = 0 then x else nth xs (i - 1)
+
+(* Representation 1: a node is an index into parallel lists. *)
+let columns = handler
+  | effect (PoolAdd e) k -> (fun (ops, lhs, rhs) ->
+    let (op, l, r) =
+      match e with
+      | Binary (op, l, r) -> (code op, l, r)
+      | Literal num -> (0, num, 0)
+    in
+    continue k (length ops) (ops @ [op], lhs @ [l], rhs @ [r]))
+  | effect (PoolGet i) k -> (fun (ops, lhs, rhs) ->
+    let e =
+      match nth ops i with
+      | 0 -> Literal (nth lhs i)
+      | op -> Binary (op_of op, nth lhs i, nth rhs i)
+    in
+    continue k e (ops, lhs, rhs))
+  | y -> (fun _ -> y)
+  | finally f -> f ([], [], [])
+
+(* Representation 2: a node is an index into one list of triples. *)
+let triples = handler
+  | effect (PoolAdd e) k -> (fun triples ->
+    let row =
+      match e with
+      | Binary (op, l, r) -> [code op; l; r]
+      | Literal num -> [0; num; 0]
+    in
+    continue k (length triples / 3) (triples @ row))
+  | effect (PoolGet i) k -> (fun triples ->
+    let at j = nth triples (3 * i + j) in
+    let e = match at 0 with 0 -> Literal (at 1) | op -> Binary (op_of op, at 1, at 2) in
+    continue k e triples)
+  | y -> (fun _ -> y)
+  | finally f -> f []
+
+;;
+
+with columns handle
+  let e = bin Div (bin Mul (bin Sub (lit 7) (lit 10)) (lit 7)) (lit 2) in
+  show (interp e);
+  (with triples handle show (interp (bin Div (bin Add (lit 4) (lit 4)) (bin Sub (lit 4) (lit 4)))));
+  show (interp e)

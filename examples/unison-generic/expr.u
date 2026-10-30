@@ -1,0 +1,101 @@
+-- The pool is an ability whose index type is a parameter; each representation is its own
+-- handler, and the code written against the ability only has to say `{Ast r}`.
+type BinOp = Add | Sub | Mul | Div
+
+type Expr r = Binary BinOp r r | Literal Int
+
+ability Ast r where
+  add : Expr r ->{Ast r} r
+  get : r ->{Ast r} Expr r
+
+-- `Int./` floors; the post's division truncates toward zero.
+quot : Int -> Int -> Int
+quot x y =
+  q = x Int./ y
+  if Int.eq (q Int.* y) x then q
+  else if Int.lt (x Int.* y) +0 then q Int.+ +1
+  else q
+
+interp : r ->{Ast r} Int
+interp e = match get e with
+  Expr.Binary op lhs rhs ->
+    l = interp lhs
+    r = interp rhs
+    match op with
+      BinOp.Add -> l Int.+ r
+      BinOp.Sub -> l Int.- r
+      BinOp.Mul -> l Int.* r
+      BinOp.Div -> if Int.eq r +0 then +0 else quot l r
+  Expr.Literal num -> num
+
+lit n = add (Expr.Literal n)
+bin op l r = add (Expr.Binary op l r)
+
+code : BinOp -> Int
+code = cases
+  BinOp.Add -> +1
+  BinOp.Sub -> +2
+  BinOp.Mul -> +3
+  BinOp.Div -> +4
+
+opOf : Int -> BinOp
+opOf = cases
+  +1 -> BinOp.Add
+  +2 -> BinOp.Sub
+  +3 -> BinOp.Mul
+  _ -> BinOp.Div
+
+-- Representation 1: a node is an index into parallel lists.
+type Idx = Idx Nat
+
+withColumns : '{g, Ast Idx} a ->{g} a
+withColumns p =
+  go ops lhs rhs = cases
+    { a } -> a
+    { add e -> k } ->
+      (op, l, r) = match e with
+        Expr.Binary o (Idx.Idx x) (Idx.Idx y) -> (code o, Nat.toInt x, Nat.toInt y)
+        Expr.Literal num -> (+0, num, +0)
+      i = Idx.Idx (List.size ops)
+      handle k i with go (List.snoc ops op) (List.snoc lhs l) (List.snoc rhs r)
+    { get (Idx.Idx i) -> k } ->
+      e = match (List.at i ops, List.at i lhs, List.at i rhs) with
+        (Some +0, Some l, _) -> Expr.Literal l
+        (Some op, Some l, Some r) ->
+          Expr.Binary (opOf op) (Idx.Idx (Int.truncate0 l)) (Idx.Idx (Int.truncate0 r))
+        _ -> bug i
+      handle k e with go ops lhs rhs
+  handle !p with go [] [] []
+
+-- Representation 2: a node is an index into one list of triples.
+type Slot = Slot Nat
+
+withTriples : '{g, Ast Slot} a ->{g} a
+withTriples p =
+  go triples = cases
+    { a } -> a
+    { add e -> k } ->
+      row = match e with
+        Expr.Binary op (Slot.Slot l) (Slot.Slot r) -> [code op, Nat.toInt l, Nat.toInt r]
+        Expr.Literal num -> [+0, num, +0]
+      handle k (Slot.Slot (List.size triples Nat./ 3)) with go (triples List.++ row)
+    { get (Slot.Slot i) -> k } ->
+      e = match List.take 3 (List.drop (3 Nat.* i) triples) with
+        [+0, l, _] -> Expr.Literal l
+        [op, l, r] ->
+          Expr.Binary (opOf op) (Slot.Slot (Int.truncate0 l)) (Slot.Slot (Int.truncate0 r))
+        _ -> bug i
+      handle k e with go triples
+  handle !p with go []
+
+say : Int ->{IO} ()
+say n = match putBytes.impl (stdHandle StdOut) (Text.toUtf8 (Int.toText n Text.++ "\n")) with
+  _ -> ()
+
+main : '{IO} ()
+main = do withColumns do
+  e = bin BinOp.Div (bin BinOp.Mul (bin BinOp.Sub (lit +7) (lit +10)) (lit +7)) (lit +2)
+  say (interp e)
+  withTriples do
+    say (interp (bin BinOp.Div (bin BinOp.Add (lit +4) (lit +4)) (bin BinOp.Sub (lit +4) (lit +4))))
+  say (interp e)

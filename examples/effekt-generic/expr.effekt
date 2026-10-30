@@ -1,0 +1,103 @@
+// The pool is an effect whose interface takes the index type as a parameter,
+// so everything that uses it is generic in `R` and says `/ Ast[R]`.
+type BinOp {
+  Add()
+  Sub()
+  Mul()
+  Div()
+}
+
+type Expr[R] {
+  Binary(op: BinOp, lhs: R, rhs: R)
+  Literal(num: Int)
+}
+
+interface Ast[R] {
+  def add(e: Expr[R]): R
+  def get(r: R): Expr[R]
+}
+
+def interp[R](e: R): Int / Ast[R] = do get(e) match {
+  case Binary(op, lhs, rhs) =>
+    val l = interp(lhs)
+    val r = interp(rhs)
+    op match {
+      case Add() => l + r
+      case Sub() => l - r
+      case Mul() => l * r
+      case Div() => if (r == 0) 0 else l / r
+    }
+  case Literal(num) => num
+}
+
+def lit[R](n: Int): R / Ast[R] = do add(Literal(n))
+def bin[R](op: BinOp, l: R, r: R): R / Ast[R] = do add(Binary(op, l, r))
+
+def code(op: BinOp): Int = op match {
+  case Add() => 1
+  case Sub() => 2
+  case Mul() => 3
+  case Div() => 4
+}
+
+def opOf(code: Int): BinOp =
+  if (code == 1) Add() else if (code == 2) Sub() else if (code == 3) Mul() else Div()
+
+def at(xs: List[Int], i: Int): Int = xs match {
+  case Cons(x, rest) => if (i == 0) x else at(rest, i - 1)
+  case Nil() => 0
+}
+
+// Representation 1: a node is an index into parallel lists.
+record Idx(i: Int)
+
+def withColumns[T] { prog: => T / Ast[Idx] }: T = {
+  var ops: List[Int] = Nil()
+  var lhs: List[Int] = Nil()
+  var rhs: List[Int] = Nil()
+  try prog() with Ast[Idx] {
+    def add(e) = {
+      val (op, l, r) = e match {
+        case Binary(op, Idx(l), Idx(r)) => (code(op), l, r)
+        case Literal(num) => (0, num, 0)
+      }
+      ops = ops.append([op]); lhs = lhs.append([l]); rhs = rhs.append([r])
+      resume(Idx(ops.size - 1))
+    }
+    def get(idx) = {
+      val i = idx.i
+      val op = at(ops, i)
+      resume(if (op == 0) Literal(at(lhs, i))
+             else Binary(opOf(op), Idx(at(lhs, i)), Idx(at(rhs, i))))
+    }
+  }
+}
+
+// Representation 2: a node is an index into one list of triples.
+record Slot(i: Int)
+
+def withTriples[T] { prog: => T / Ast[Slot] }: T = {
+  var triples: List[Int] = Nil()
+  try prog() with Ast[Slot] {
+    def add(e) = {
+      e match {
+        case Binary(op, Slot(l), Slot(r)) => triples = triples.append([code(op), l, r])
+        case Literal(num) => triples = triples.append([0, num, 0])
+      }
+      resume(Slot(triples.size / 3 - 1))
+    }
+    def get(slot) = {
+      val i = 3 * slot.i
+      val op = at(triples, i)
+      resume(if (op == 0) Literal(at(triples, i + 1))
+             else Binary(opOf(op), Slot(at(triples, i + 1)), Slot(at(triples, i + 2))))
+    }
+  }
+}
+
+def main() = withColumns {
+  val e = bin(Div(), bin(Mul(), bin(Sub(), lit(7), lit(10)), lit(7)), lit(2))
+  println(interp(e))
+  withTriples { println(interp(bin(Div(), bin(Add(), lit(4), lit(4)), bin(Sub(), lit(4), lit(4))))) }
+  println(interp(e))
+}

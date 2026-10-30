@@ -1,0 +1,105 @@
+// The pool is an effect parameterized by the index type, so everything that
+// uses it is generic in `r` and says `can Ast r`; and since values are affine,
+// each index type needs its own `Copy` impl to be used more than once.
+import Std.Vec.Vec, empty, push, len, get_unchecked
+
+// Not Add/Sub/Mul/Div: those names are the prelude's operator traits.
+type BinOp =
+   | Plus
+   | Minus
+   | Times
+   | Divide
+
+type Expr r =
+   | Binary BinOp r r
+   | Literal I64
+
+effect Ast r =
+    add: fn (Expr r) -> r
+    get: fn r -> Expr r
+
+interp (e: r): I64 can Ast r =
+    match get e
+    | Binary op lhs rhs ->
+        l = interp lhs
+        r = interp rhs
+        match op
+        | Plus -> l + r
+        | Minus -> l - r
+        | Times -> l * r
+        | Divide -> if r == 0 then 0 else l / r
+    | Literal num -> num
+
+lit (n: I64): r can Ast r = add (Literal n)
+bin (op: BinOp) (lhs: r) (rhs: r): r can Ast r = add (Binary op lhs rhs)
+
+code (op: BinOp): I64 =
+    match op
+    | Plus -> 1
+    | Minus -> 2
+    | Times -> 3
+    | Divide -> 4
+
+op_of (code: I64): BinOp =
+    match code
+    | 1 -> Plus
+    | 2 -> Minus
+    | 3 -> Times
+    | _ -> Divide
+
+// Representation 1: a node is an index into parallel lists.
+type Idx = i: Usz
+impl copy_idx: Copy Idx with (.*) = deref
+
+with_columns (f: fn Unit => a can Ast Idx): a =
+    var ops: Vec I64 = Vec.empty ()
+    var lhs: Vec I64 = Vec.empty ()
+    var rhs: Vec I64 = Vec.empty ()
+    handler h for
+    | add (e: Expr Idx) ->
+        (op, l, r) = match e
+            | Binary op l r -> (code op, cast l.i, cast r.i)
+            | Literal num -> (0, num, 0)
+        ops.push op
+        lhs.push l
+        rhs.push r
+        resume (Idx (ops.len - 1usz))
+    | get (idx: Idx) ->
+        i = idx.i
+        l = lhs.get_unchecked i |> deref
+        match ops.get_unchecked i |> deref
+        | 0 -> resume (Literal l)
+        | op -> resume (Binary (op_of op) (Idx (cast l)) (Idx (cast (rhs.get_unchecked i |> deref))))
+    in f ()
+
+// Representation 2: a node is an index into one list of triples.
+type Slot = i: Usz
+impl copy_slot: Copy Slot with (.*) = deref
+
+with_triples (f: fn Unit => a can Ast Slot): a =
+    var triples: Vec I64 = Vec.empty ()
+    handler h for
+    | add (e: Expr Slot) ->
+        match e
+        | Binary op l r ->
+            triples.push (code op)
+            triples.push (cast l.i)
+            triples.push (cast r.i)
+        | Literal num ->
+            triples.push 0
+            triples.push num
+            triples.push 0
+        resume (Slot (triples.len / 3usz - 1usz))
+    | get (slot: Slot) ->
+        i = 3usz * slot.i
+        a = triples.get_unchecked (i + 1usz) |> deref
+        match triples.get_unchecked i |> deref
+        | 0 -> resume (Literal a)
+        | op -> resume (Binary (op_of op) (Slot (cast a)) (Slot (cast (triples.get_unchecked (i + 2usz) |> deref))))
+    in f ()
+
+main () = with_columns fn () ->
+    e = bin Divide (bin Times (bin Minus (lit 7) (lit 10)) (lit 7)) (lit 2)
+    println (interp e)
+    with_triples fn () -> println (interp (bin Divide (bin Plus (lit 4) (lit 4)) (bin Minus (lit 4) (lit 4))))
+    println (interp e)

@@ -93,11 +93,13 @@
             ];
             # Moss resolves imports relative to the importing file, and its
             # compiler runs under WASI, so the standard library has to be a
-            # real directory beside the example rather than a symlink.
+            # real directory beside each example rather than a symlink.
             shellHook = ''
-              rm -rf examples/moss/lib
-              cp -r ${mossPkg}/share/moss/lib examples/moss/lib
-              chmod -R u+w examples/moss/lib
+              for dir in examples/moss examples/moss-generic; do
+                rm -rf $dir/lib
+                cp -r ${mossPkg}/share/moss/lib $dir/lib
+                chmod -R u+w $dir/lib
+              done
             '';
           };
         }

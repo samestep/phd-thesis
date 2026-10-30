@@ -1,0 +1,118 @@
+-- Backpack: `Interp` is written against an `Ast` signature with an abstract `Ref` type and
+-- instantiated once per representation; each pool is still a module, global and fixed at link time.
+unit ast where
+  module Ast where
+    data BinOp = Add | Sub | Mul | Div deriving (Enum)
+    data Expr r = Binary BinOp r r | Literal Int
+
+unit interp where
+  dependency ast
+  signature Repr where
+    import Ast
+    data Ref
+    add :: Expr Ref -> IO Ref
+    get :: Ref -> IO (Expr Ref)
+  module Interp where
+    import Ast
+    import Repr
+
+    interp :: Ref -> IO Int
+    interp expr = do
+      e <- get expr
+      case e of
+        Binary op lhs rhs -> do
+          l <- interp lhs
+          r <- interp rhs
+          pure $ case op of
+            Add -> l + r
+            Sub -> l - r
+            Mul -> l * r
+            Div -> if r == 0 then 0 else l `quot` r
+        Literal num -> pure num
+
+    lit :: Int -> IO Ref
+    lit = add . Literal
+
+    bin :: BinOp -> IO Ref -> IO Ref -> IO Ref
+    bin op l r = do x <- l; y <- r; add (Binary op x y)
+
+unit reprs where
+  dependency ast
+  module Code where
+    import Ast
+    code :: BinOp -> Int
+    code = succ . fromEnum
+    opOf :: Int -> BinOp
+    opOf = toEnum . pred
+
+  -- Representation 1: a node is an index into parallel lists.
+  module Columns where
+    import Data.IORef
+    import System.IO.Unsafe
+    import Ast
+    import Code
+
+    newtype Idx = Idx Int
+    type Ref = Idx
+
+    {-# NOINLINE columns #-}
+    columns :: IORef ([Int], [Int], [Int])
+    columns = unsafePerformIO (newIORef ([], [], []))
+
+    add :: Expr Idx -> IO Idx
+    add expr = do
+      let (op, l, r) = case expr of
+            Binary o (Idx x) (Idx y) -> (code o, x, y)
+            Literal num -> (0, num, 0)
+      modifyIORef columns (\(ops, lhs, rhs) -> (ops ++ [op], lhs ++ [l], rhs ++ [r]))
+      (\(ops, _, _) -> Idx (length ops - 1)) <$> readIORef columns
+
+    get :: Idx -> IO (Expr Idx)
+    get (Idx i) = do
+      (ops, lhs, rhs) <- readIORef columns
+      pure $ case ops !! i of
+        0 -> Literal (lhs !! i)
+        op -> Binary (opOf op) (Idx (lhs !! i)) (Idx (rhs !! i))
+
+  -- Representation 2: a node is an index into one list of triples.
+  module Triples where
+    import Data.IORef
+    import System.IO.Unsafe
+    import Ast
+    import Code
+
+    newtype Slot = Slot Int
+    type Ref = Slot
+
+    {-# NOINLINE triples #-}
+    triples :: IORef [Int]
+    triples = unsafePerformIO (newIORef [])
+
+    add :: Expr Slot -> IO Slot
+    add expr = do
+      modifyIORef triples (++ case expr of
+        Binary op (Slot l) (Slot r) -> [code op, l, r]
+        Literal num -> [0, num, 0])
+      Slot . subtract 1 . (`div` 3) . length <$> readIORef triples
+
+    get :: Slot -> IO (Expr Slot)
+    get (Slot i) = do
+      at <- (\t k -> t !! (3 * i + k)) <$> readIORef triples
+      pure $ if at 0 == 0 then Literal (at 1) else Binary (opOf (at 0)) (Slot (at 1)) (Slot (at 2))
+
+unit main where
+  dependency ast
+  dependency reprs
+  dependency interp[Repr=reprs:Columns] (Interp as A)
+  dependency interp[Repr=reprs:Triples] (Interp as B)
+  module Main where
+    import Ast (BinOp (..))
+    import qualified A
+    import qualified B
+
+    main :: IO ()
+    main = do
+      e <- A.bin Div (A.bin Mul (A.bin Sub (A.lit 7) (A.lit 10)) (A.lit 7)) (A.lit 2)
+      print =<< A.interp e
+      print =<< B.interp =<< B.bin Div (B.bin Add (B.lit 4) (B.lit 4)) (B.bin Sub (B.lit 4) (B.lit 4))
+      print =<< A.interp e
