@@ -1,0 +1,214 @@
+import "wasi.moss" use WasiStd;
+import "wasistd.moss" use Branch;
+import "wasm.moss" use Wasm;
+import "wasip1.moss" use Wasi;
+
+unit Add;
+unit Sub;
+unit Mul;
+unit Div;
+
+type BinOp = Add | Sub | Mul | Div;
+
+# The pool: an abstract index type, how to read a node through one, and
+# how to make one.
+type ExprRef;
+
+assume Std, ExprRef {
+  type Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
+  type Literal Int;
+  # Evaluate the inner expression with tracing on.
+  type Traced ExprRef;
+
+  type Expr = Binary | Literal | Traced;
+
+  fn .data(): Expr;
+  fn add(expr: Expr): ExprRef;
+
+  context Ast = ExprRef, ExprRef.data, add;
+}
+
+# The arithmetic of the interpreted language: what a value is, what a
+# literal means, and how to print one.
+type Value;
+
+assume Std, Value {
+  fn value(n: Int): Value;
+  fn print_value(v: Value);
+
+  context Arith = Value, value, print_value, Value.add, Value.sub, Value.mul, Value.div;
+
+  # Called with every intermediate value.
+  fn trace(v: Value);
+}
+
+functor Quiet: Std, Value -> trace {
+  bind trace = (v) => {};
+}
+
+functor Loud: Std, Arith -> trace {
+  bind trace = (v) => {
+    putchar(char::space);
+    putchar(char::space);
+    print_value(v);
+  };
+}
+
+# Written once, against the interfaces alone.
+assume Std, Ast, Arith, trace {
+  fn interp(e: ExprRef): Value {
+    let v = match e.data() {
+      Binary { op, lhs, rhs } => {
+        let l = interp(lhs);
+        let r = interp(rhs);
+        match op {
+          Add => l + r,
+          Sub => l - r,
+          Mul => l * r,
+          Div => l / r,
+        }
+      },
+      Literal n => value(n),
+      Traced inner => {
+        bind Loud;
+        interp(inner)
+      },
+    };
+    trace(v);
+    v
+  }
+
+  fn report(e: ExprRef) { print_value(interp(e)); }
+}
+
+assume Std, Ast {
+  fn lit(n: Int): ExprRef { add(Literal (n)) }
+  fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef { add(Binary { op, lhs, rhs }) }
+  fn traced(inner: ExprRef): ExprRef { add(Traced (inner)) }
+}
+
+assume Std {
+  fn print_int(n: Int) {
+    if n < 0 {
+      putchar(char::hyphen);
+      print_int(-n);
+      return;
+    }
+    if n >= 10 { print_int(n / 10); }
+    putchar((n % 10 + char::digit0.code()).char());
+  }
+
+  fn print_line(n: Int) {
+    print_int(n);
+    putchar(char::newline);
+  }
+
+  # A pool: a node is an index into one list of triples.
+  type Slot Int;
+  val triples: IntList;
+
+  assume triples {
+    fn Slot.at(): Int { match this { Slot i => i } }
+
+    fn Slot.node(): Expr[ExprRef=Slot] {
+      let i = this.at() * 3;
+      let code = triples.get(i);
+      let a = triples.get(i + 1);
+      let b = triples.get(i + 2);
+      if code == 0 {
+        Literal (a)
+      } else if code == 5 {
+        Traced[ExprRef=Slot] (Slot (a))
+      } else {
+        let op: BinOp = if code == 1 { Add } else if code == 2 { Sub } else if code == 3 { Mul } else { Div };
+        Binary[ExprRef=Slot] { op, lhs = Slot (a), rhs = Slot (b) }
+      }
+    }
+
+    fn triples_add(expr: Expr[ExprRef=Slot]): Slot {
+      let i = triples.length() / 3;
+      match expr {
+        Binary { op, lhs, rhs } => {
+          triples.push(match op { Add => 1, Sub => 2, Mul => 3, Div => 4 });
+          triples.push(lhs.at());
+          triples.push(rhs.at());
+        },
+        Literal n => {
+          triples.push(0);
+          triples.push(n);
+          triples.push(0);
+        },
+        Traced inner => {
+          triples.push(5);
+          triples.push(inner.at());
+          triples.push(0);
+        },
+      }
+      Slot (i)
+    }
+  }
+
+  # Saturating i32: an f64 holds every i32 sum, difference and quotient
+  # exactly enough, and every product below 2^53, so convert, compute and
+  # truncate, which saturates out of range.
+  type Sat Int;
+
+  fn int_of(s: Sat): Int { match s { Sat n => n } }
+
+  fn Sat.add(rhs: Sat): Sat { Sat ((float(int_of(this)) + float(int_of(rhs))).trunc()) }
+  fn Sat.sub(rhs: Sat): Sat { Sat ((float(int_of(this)) - float(int_of(rhs))).trunc()) }
+  fn Sat.mul(rhs: Sat): Sat { Sat ((float(int_of(this)) * float(int_of(rhs))).trunc()) }
+  fn Sat.div(rhs: Sat): Sat { Sat ((float(int_of(this)) / float(int_of(rhs))).trunc()) }
+}
+
+# Three meanings for the interpreted language's arithmetic.
+functor Wrapping: Std -> Value, value, print_value {
+  bind Value = Int;
+  bind value = (n) => n;
+  bind print_value = print_line;
+}
+
+functor Saturating: Std -> Arith {
+  bind Value = Sat;
+  bind Value.add = Sat.add;
+  bind Value.sub = Sat.sub;
+  bind Value.mul = Sat.mul;
+  bind Value.div = Sat.div;
+  bind value = (n) => Sat (n);
+  bind print_value = (v) => print_line(int_of(v));
+}
+
+functor Floating: Std -> Value, value, print_value {
+  bind Value = Float;
+  bind value = float;
+  bind print_value = (v) => print_line(v.round());
+}
+
+assume Wasm, Wasi, Branch {
+  fn main() {
+    bind WasiStd;
+    bind triples = int_list();
+    bind ExprRef = Slot;
+    bind ExprRef.data = Slot.node;
+    bind add = triples_add;
+    # 50000 * 50000 / 100000 + traced((7 - 10) * 7 / 8)
+    let e = bin(Add,
+      bin(Div, bin(Mul, lit(50000), lit(50000)), lit(100000)),
+      traced(bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(8))));
+    {
+      bind Wrapping;
+      bind Quiet;
+      report(e);
+    }
+    {
+      bind Saturating;
+      bind Quiet;
+      report(e);
+    }
+    {
+      bind Floating;
+      bind Quiet;
+      report(e);
+    }
+  }
+}
