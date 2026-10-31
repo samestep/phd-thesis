@@ -1,0 +1,91 @@
+import "wasi.moss" use WasiStd;
+import "wasistd.moss" use Branch;
+import "wasm.moss" use Wasm;
+import "wasip1.moss" use Wasi;
+
+# The interface of a logging library: each level can be logged if the
+# current maximum level allows it, or forced regardless.
+assume Std {
+  fn error(message: Int);
+  fn warn(message: Int);
+  fn info(message: Int);
+  fn debug(message: Int);
+  fn trace(message: Int);
+  context MaybeLog = error, warn, info, debug, trace;
+
+  fn force_error(message: Int);
+  fn force_warn(message: Int);
+  fn force_info(message: Int);
+  fn force_debug(message: Int);
+  fn force_trace(message: Int);
+  context ForceLog = force_error, force_warn, force_info, force_debug, force_trace;
+
+  context Log = MaybeLog, ForceLog;
+
+  fn noop(message: Int) {}
+
+  fn print_int(n: Int) {
+    if n >= 10 { print_int(n / 10); }
+    putchar((n % 10 + char::digit0.code()).char());
+  }
+
+  fn print_line(message: Int) {
+    print_int(message);
+    putchar(char::newline);
+  }
+}
+
+functor MaxLevelInfo: Std, ForceLog -> MaybeLog {
+  bind error = force_error;
+  bind warn = force_warn;
+  bind info = force_info;
+  bind debug = noop;
+  bind trace = noop;
+}
+
+functor MaxLevelDebug: Std, ForceLog -> MaybeLog {
+  bind error = force_error;
+  bind warn = force_warn;
+  bind info = force_info;
+  bind debug = force_debug;
+  bind trace = noop;
+}
+
+functor Stdout: Std -> ForceLog {
+  bind force_error = print_line;
+  bind force_warn = print_line;
+  bind force_info = print_line;
+  bind force_debug = print_line;
+  bind force_trace = print_line;
+}
+
+assume Std, Log {
+  fn foo() {
+    debug(3);
+  }
+
+  fn bar() {
+    info(1);
+    debug(2);
+    {
+      bind MaxLevelDebug;
+      foo();
+    }
+    debug(4);
+  }
+}
+
+assume Std, ForceLog {
+  fn baz() {
+    bind MaxLevelInfo;
+    bar();
+  }
+}
+
+assume Wasm, Wasi, Branch {
+  fn main() {
+    bind WasiStd;
+    bind Stdout;
+    baz();
+  }
+}
