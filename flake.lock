@@ -230,7 +230,8 @@
         "roc-basic-cli": "roc-basic-cli",
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",
-        "roc-macos-arm64": "roc-macos-arm64"
+        "roc-macos-arm64": "roc-macos-arm64",
+        "virgil": "virgil"
       }
     },
     "rust-overlay": {
@@ -251,6 +252,23 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "virgil": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793388202,
+        "narHash": "sha256-3RngcNJRcS3rHavQIYBUqwIxBYsJD1TzEXo3DajDkvU=",
+        "owner": "titzer",
+        "repo": "virgil",
+        "rev": "d83efd1b0076e292efca1ccf4830e2f6faf6ade5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "titzer",
+        "repo": "virgil",
+        "rev": "d83efd1b0076e292efca1ccf4830e2f6faf6ade5",
         "type": "github"
       }
     }

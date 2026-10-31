@@ -1,0 +1,47 @@
+// The tree Sampson starts from: an algebraic data type whose cases hold their
+// children directly, so nothing needs a pool, but every node is its own heap
+// object.
+
+enum BinOp { ADD, SUB, MUL, DIV }
+
+type Expr {
+	case Binary(op: BinOp, lhs: Expr, rhs: Expr);
+	case Literal(num: long);
+}
+
+def interp(expr: Expr) -> long {
+	match (expr) {
+		Binary(op, lhs, rhs) => {
+			var l = interp(lhs), r = interp(rhs);
+			match (op) {
+				ADD => return l + r;
+				SUB => return l - r;
+				MUL => return l * r;
+				DIV => return if(r == 0, 0, l / r);
+			}
+		}
+		Literal(num) => return num;
+	}
+}
+
+def lit(n: long) -> Expr {
+	return Expr.Literal(n);
+}
+
+def bin(op: BinOp, lhs: Expr, rhs: Expr) -> Expr {
+	return Expr.Binary(op, lhs, rhs);
+}
+
+def print(n: long) {
+	System.puts(Strings.format1("%d\n", n));
+}
+
+def main() {
+	var e = bin(BinOp.DIV, bin(BinOp.MUL, bin(BinOp.SUB, lit(7), lit(10)), lit(7)), lit(2));
+	print(interp(e));
+	{
+		var f = bin(BinOp.DIV, bin(BinOp.ADD, lit(4), lit(4)), bin(BinOp.SUB, lit(4), lit(4)));
+		print(interp(f));
+	}
+	print(interp(e));
+}

@@ -49,6 +49,12 @@
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
     };
+    # Virgil isn't in nixpkgs, and has no releases: its repository carries
+    # stable compiler binaries to bootstrap the compiler from source with.
+    virgil = {
+      url = "github:titzer/virgil/d83efd1b0076e292efca1ccf4830e2f6faf6ade5";
+      flake = false;
+    };
   };
   outputs =
     inputs@{

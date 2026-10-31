@@ -1,0 +1,63 @@
+// The pool has to be passed to everything that touches an `Expr`: here they
+// are methods of the pool, so the pool is their receiver.
+
+enum BinOp { ADD, SUB, MUL, DIV }
+
+type ExprRef(index: int) #unboxed;
+
+type Expr {
+	case Binary(op: BinOp, lhs: ExprRef, rhs: ExprRef);
+	case Literal(num: long);
+}
+
+class ExprPool {
+	def exprs = Vector<Expr>.new();
+
+	def add(expr: Expr) -> ExprRef {
+		exprs.put(expr);
+		return ExprRef(exprs.length - 1);
+	}
+
+	def get(expr: ExprRef) -> Expr {
+		return exprs[expr.index];
+	}
+
+	def interp(expr: ExprRef) -> long {
+		match (get(expr)) {
+			Binary(op, lhs, rhs) => {
+				var l = interp(lhs), r = interp(rhs);
+				match (op) {
+					ADD => return l + r;
+					SUB => return l - r;
+					MUL => return l * r;
+					DIV => return if(r == 0, 0, l / r);
+				}
+			}
+			Literal(num) => return num;
+		}
+	}
+
+	def lit(n: long) -> ExprRef {
+		return add(Expr.Literal(n));
+	}
+
+	def bin(op: BinOp, lhs: ExprRef, rhs: ExprRef) -> ExprRef {
+		return add(Expr.Binary(op, lhs, rhs));
+	}
+}
+
+def print(n: long) {
+	System.puts(Strings.format1("%d\n", n));
+}
+
+def main() {
+	var pool = ExprPool.new();
+	var e = pool.bin(BinOp.DIV, pool.bin(BinOp.MUL, pool.bin(BinOp.SUB, pool.lit(7), pool.lit(10)), pool.lit(7)), pool.lit(2));
+	print(pool.interp(e));
+	{
+		var pool = ExprPool.new();
+		var f = pool.bin(BinOp.DIV, pool.bin(BinOp.ADD, pool.lit(4), pool.lit(4)), pool.bin(BinOp.SUB, pool.lit(4), pool.lit(4)));
+		print(pool.interp(f));
+	}
+	print(pool.interp(e));
+}

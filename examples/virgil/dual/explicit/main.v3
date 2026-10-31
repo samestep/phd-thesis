@@ -1,0 +1,103 @@
+// An abstract class for the arithmetic, `Field<F>`, extended by one for
+// `double` and by `DualField<F>`, which makes a `Field<Dual<F>>` from any
+// `Field<F>`, so duals nest, and every function in the program takes a
+// `Field<F>` or a `Real<F>` (a field that can also round) and has a type
+// parameter, which the compiler infers at each call. Nothing derives the
+// field for a dual: each function that differentiates builds one, wrapping
+// the field it was given. There are no operator methods, so `f` writes each
+// operation as a call on its field, constants included (`k.constant(2.0)`).
+// `Dual<Dual<R>>` and `Dual<R>` are different types, so `nested` has to lift
+// the outer variable into the inner differentiation (`still(dk, x)`): adding
+// it as it is (`ddk.add(x, variable(dk, y0))`) is a compile-time error. The
+// compiler specializes each function for each type, and a `Dual` is an
+// unboxed pair, never a heap object.
+
+class Field<F> {
+	def constant(n: double) -> F;
+	def add(x: F, y: F) -> F;
+	def sub(x: F, y: F) -> F;
+	def mul(x: F, y: F) -> F;
+	def div(x: F, y: F) -> F;
+}
+
+class Real<F> extends Field<F> {
+	def round(x: F) -> long;
+}
+
+class F64 extends Real<double> {
+	def constant(n: double) -> double { return n; }
+	def add(x: double, y: double) -> double { return x + y; }
+	def sub(x: double, y: double) -> double { return x - y; }
+	def mul(x: double, y: double) -> double { return x * y; }
+	def div(x: double, y: double) -> double { return x / y; }
+	def round(x: double) -> long { return long.truncd(double.round(x)); }
+}
+
+def f<F>(k: Field<F>, x: F) -> F {
+	return k.sub(k.sub(k.mul(k.mul(x, x), x), k.mul(k.constant(2.0), x)), k.constant(5.0));
+}
+
+type Dual<F>(v: F, d: F) #unboxed;
+
+def variable<F>(k: Field<F>, x: F) -> Dual<F> {
+	return Dual(x, k.constant(1.0));
+}
+
+def still<F>(k: Field<F>, x: F) -> Dual<F> {
+	return Dual(x, k.constant(0.0));
+}
+
+class DualField<F>(k: Field<F>) extends Field<Dual<F>> {
+	def constant(n: double) -> Dual<F> {
+		return still(k, k.constant(n));
+	}
+	def add(x: Dual<F>, y: Dual<F>) -> Dual<F> {
+		return Dual(k.add(x.v, y.v), k.add(x.d, y.d));
+	}
+	def sub(x: Dual<F>, y: Dual<F>) -> Dual<F> {
+		return Dual(k.sub(x.v, y.v), k.sub(x.d, y.d));
+	}
+	def mul(x: Dual<F>, y: Dual<F>) -> Dual<F> {
+		return Dual(k.mul(x.v, y.v), k.add(k.mul(x.d, y.v), k.mul(x.v, y.d)));
+	}
+	def div(x: Dual<F>, y: Dual<F>) -> Dual<F> {
+		return Dual(k.div(x.v, y.v), k.div(k.sub(k.mul(x.d, y.v), k.mul(x.v, y.d)), k.mul(y.v, y.v)));
+	}
+}
+
+def show<R>(k: Real<R>, x: R) {
+	System.puts(Strings.format1("%d\n", k.round(k.mul(x, k.constant(1000000.0)))));
+}
+
+def derivatives<R>(k: Real<R>, x: R) {
+	var dk = DualField.new(k), ddk = DualField.new(dk);
+	show(k, f(k, x));
+	show(k, f(dk, variable(k, x)).d);
+	show(k, f(ddk, variable(dk, variable(k, x))).d.d);
+}
+
+def newton<R>(k: Real<R>, x0: R, steps: int) {
+	var dk = DualField.new(k);
+	var x = x0;
+	for (i < steps) {
+		var y = f(dk, variable(k, x));
+		x = k.sub(x, k.div(y.v, y.d));
+		show(k, x);
+	}
+}
+
+// d/dx (x * d/dy (x + y)) at x = 1, y = 1.
+def nested<R>(k: Real<R>, at: R) -> R {
+	var dk = DualField.new(k), ddk = DualField.new(dk);
+	var x = variable(k, at);
+	var y0 = dk.constant(1.0);
+	var inner = ddk.add(still(dk, x), variable(dk, y0)).d;
+	return dk.mul(x, inner).d;
+}
+
+def main() {
+	var k = F64.new();
+	derivatives(k, 2.0);
+	newton(k, 2.0, 4);
+	show(k, nested(k, 1.0));
+}

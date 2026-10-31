@@ -1,0 +1,157 @@
+// Two type parameters, the pool's index type and the value type, with an
+// object for the pool and one for the arithmetic, and the tracer a function
+// of the value. Every function that builds or reads an `Expr` takes the pool,
+// and `interp` and `report` take all three, though the compiler infers both
+// type parameters at each call; only `quiet`, a generic function passed as a
+// value, has nothing to infer its type from, so `main` names it. A `Traced` node
+// passes `loud(arith, _)`, the partial application of `loud` to the
+// arithmetic, in place of the tracer it was given. The compiler specializes
+// each function for each pair of types, but the arithmetic and the tracer
+// are an object and a function chosen at run time, so each operation, node
+// and trace is an indirect call unless the optimizer devirtualizes it.
+
+enum BinOp { ADD, SUB, MUL, DIV }
+
+type Expr<R> {
+	case Binary(op: BinOp, lhs: R, rhs: R);
+	case Literal(n: int);
+	// Evaluate the inner expression with tracing on.
+	case Traced(inner: R);
+}
+
+// The pool: an index type, how to read a node through one, and how to make
+// one.
+class Pool<R> {
+	def node(e: R) -> Expr<R>;
+	def add(expr: Expr<R>) -> R;
+}
+
+// The arithmetic of the interpreted language: what a value is, what a
+// literal means, and how to print one.
+class Arith<V> {
+	def value(n: int) -> V;
+	def print(v: V);
+	def add(x: V, y: V) -> V;
+	def sub(x: V, y: V) -> V;
+	def mul(x: V, y: V) -> V;
+	def div(x: V, y: V) -> V;
+}
+
+// Tracers, called with every intermediate value.
+def quiet<V>(v: V) { }
+
+def loud<V>(arith: Arith<V>, v: V) {
+	System.puts("  ");
+	arith.print(v);
+}
+
+// Written once, against the classes alone.
+def interp<R, V>(pool: Pool<R>, arith: Arith<V>, trace: V -> void, e: R) -> V {
+	var v: V;
+	match (pool.node(e)) {
+		Binary(op, lhs, rhs) => {
+			var l = interp(pool, arith, trace, lhs);
+			var r = interp(pool, arith, trace, rhs);
+			match (op) {
+				ADD => v = arith.add(l, r);
+				SUB => v = arith.sub(l, r);
+				MUL => v = arith.mul(l, r);
+				DIV => v = arith.div(l, r);
+			}
+		}
+		Literal(n) => v = arith.value(n);
+		Traced(inner) => v = interp(pool, arith, loud(arith, _), inner);
+	}
+	trace(v);
+	return v;
+}
+
+def report<R, V>(pool: Pool<R>, arith: Arith<V>, trace: V -> void, e: R) {
+	arith.print(interp(pool, arith, trace, e));
+}
+
+def lit<R>(pool: Pool<R>, n: int) -> R {
+	return pool.add(Expr.Literal(n));
+}
+
+def bin<R>(pool: Pool<R>, op: BinOp, lhs: R, rhs: R) -> R {
+	return pool.add(Expr.Binary(op, lhs, rhs));
+}
+
+def traced<R>(pool: Pool<R>, inner: R) -> R {
+	return pool.add(Expr.Traced(inner));
+}
+
+// A pool: a node is an index into one list of triples.
+type Slot(index: int) #unboxed;
+
+def binops = [BinOp.ADD, BinOp.SUB, BinOp.MUL, BinOp.DIV];
+
+class Triples extends Pool<Slot> {
+	def triples = Vector<int>.new();
+
+	def node(e: Slot) -> Expr<Slot> {
+		var i = 3 * e.index;
+		var code = triples[i], a = triples[i + 1], b = triples[i + 2];
+		if (code == 0) return Expr.Literal(a);
+		if (code == 5) return Expr.Traced(Slot(a));
+		return Expr.Binary(binops[code - 1], Slot(a), Slot(b));
+	}
+
+	def add(expr: Expr<Slot>) -> Slot {
+		var i = triples.length / 3;
+		match (expr) {
+			Binary(op, lhs, rhs) => triples.put(op.tag + 1).put(lhs.index).put(rhs.index);
+			Literal(n) => triples.put(0).put(n).put(0);
+			Traced(inner) => triples.put(5).put(inner.index).put(0);
+		}
+		return Slot(i);
+	}
+}
+
+def println(n: int) {
+	System.puti(n);
+	System.ln();
+}
+
+// Three meanings for the interpreted language's arithmetic.
+class Wrapping extends Arith<int> {
+	def value(n: int) -> int { return n; }
+	def print(v: int) { println(v); }
+	def add(x: int, y: int) -> int { return x + y; }
+	def sub(x: int, y: int) -> int { return x - y; }
+	def mul(x: int, y: int) -> int { return x * y; }
+	def div(x: int, y: int) -> int { return x / y; }
+}
+
+// Truncating a double to an int saturates, and a double holds every int sum,
+// difference and quotient exactly enough, and every product below 2^53.
+class Saturating extends Arith<int> {
+	def value(n: int) -> int { return n; }
+	def print(v: int) { println(v); }
+	def add(x: int, y: int) -> int { return int.truncd(double.!(x) + double.!(y)); }
+	def sub(x: int, y: int) -> int { return int.truncd(double.!(x) - double.!(y)); }
+	def mul(x: int, y: int) -> int { return int.truncd(double.!(x) * double.!(y)); }
+	def div(x: int, y: int) -> int { return int.truncd(double.!(x) / double.!(y)); }
+}
+
+class Floating extends Arith<double> {
+	def value(n: int) -> double { return n; }
+	// `round` rounds ties to even.
+	def print(v: double) { println(int.truncd(double.round(v))); }
+	def add(x: double, y: double) -> double { return x + y; }
+	def sub(x: double, y: double) -> double { return x - y; }
+	def mul(x: double, y: double) -> double { return x * y; }
+	def div(x: double, y: double) -> double { return x / y; }
+}
+
+def main() {
+	var pool = Triples.new();
+	// 50000 * 50000 / 100000 + traced((7 - 10) * 7 / 8)
+	var e = bin(pool, BinOp.ADD,
+		bin(pool, BinOp.DIV, bin(pool, BinOp.MUL, lit(pool, 50000), lit(pool, 50000)), lit(pool, 100000)),
+		traced(pool, bin(pool, BinOp.DIV, bin(pool, BinOp.MUL, bin(pool, BinOp.SUB, lit(pool, 7), lit(pool, 10)), lit(pool, 7)), lit(pool, 8))));
+	report(pool, Wrapping.new(), quiet<int>, e);
+	report(pool, Saturating.new(), quiet<int>, e);
+	report(pool, Floating.new(), quiet<double>, e);
+}

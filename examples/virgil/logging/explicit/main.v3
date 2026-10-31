@@ -1,0 +1,74 @@
+// Each piece of context is an object of an abstract class, passed to every
+// function that logs, as is the logger underneath it. A class extends only
+// one class, so a function that needs both lists both. Rebinding the maximum
+// level for a scope is a new object over the same logger; but the level is an
+// object chosen at run time, so a disabled level is a virtual call to an
+// empty method.
+
+class MaybeLog {
+	def error(message: int);
+	def warn(message: int);
+	def info(message: int);
+	def debug(message: int);
+	def trace(message: int);
+}
+
+class ForceLog {
+	def forceError(message: int);
+	def forceWarn(message: int);
+	def forceInfo(message: int);
+	def forceDebug(message: int);
+	def forceTrace(message: int);
+}
+
+class MaxLevelInfo(log: ForceLog) extends MaybeLog {
+	def error(message: int) { log.forceError(message); }
+	def warn(message: int) { log.forceWarn(message); }
+	def info(message: int) { log.forceInfo(message); }
+	def debug(message: int) { }
+	def trace(message: int) { }
+}
+
+class MaxLevelDebug(log: ForceLog) extends MaybeLog {
+	def error(message: int) { log.forceError(message); }
+	def warn(message: int) { log.forceWarn(message); }
+	def info(message: int) { log.forceInfo(message); }
+	def debug(message: int) { log.forceDebug(message); }
+	def trace(message: int) { }
+}
+
+class Stdout extends ForceLog {
+	def forceError(message: int) { print(message); }
+	def forceWarn(message: int) { print(message); }
+	def forceInfo(message: int) { print(message); }
+	def forceDebug(message: int) { print(message); }
+	def forceTrace(message: int) { print(message); }
+}
+
+def print(message: int) {
+	System.puti(message);
+	System.ln();
+}
+
+def foo(log: MaybeLog) {
+	log.debug(3);
+}
+
+def bar(log: MaybeLog, force: ForceLog) {
+	log.info(1);
+	log.debug(2);
+	{
+		var log = MaxLevelDebug.new(force);
+		foo(log);
+	}
+	log.debug(4);
+}
+
+def baz(force: ForceLog) {
+	var log = MaxLevelInfo.new(force);
+	bar(log, force);
+}
+
+def main() {
+	baz(Stdout.new());
+}

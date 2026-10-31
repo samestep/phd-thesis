@@ -1,0 +1,83 @@
+// Two type parameters, one per choice, and an object for each: type
+// parameters have no bounds, so the arithmetic and the constants come with a
+// `Compute<C>` object and the conversions with a `Storage<C, S>` object, and
+// every function in the chain takes both objects. The compiler infers `C` and
+// `S` at each call from those objects, so even `main` names no type, and it
+// specializes each function for each pair: `Array<S>` is a packed array of
+// `float` or `double`. But the operations are virtual calls on the objects,
+// unless the optimizer devirtualizes them.
+
+class Compute<C> {
+	def zero() -> C;
+	def tenth() -> C;
+	def thousand() -> C;
+	def add(x: C, y: C) -> C;
+	def mul(x: C, y: C) -> C;
+	def round(x: C) -> long;
+}
+
+class F64 extends Compute<double> {
+	def zero() -> double { return 0.0; }
+	def tenth() -> double { return 0.1; }
+	def thousand() -> double { return 1000.0; }
+	def add(x: double, y: double) -> double { return x + y; }
+	def mul(x: double, y: double) -> double { return x * y; }
+	def round(x: double) -> long { return long.truncd(double.round(x)); }
+}
+
+class F32 extends Compute<float> {
+	def zero() -> float { return 0.0f; }
+	def tenth() -> float { return 0.1f; }
+	def thousand() -> float { return 1000.0f; }
+	def add(x: float, y: float) -> float { return x + y; }
+	def mul(x: float, y: float) -> float { return x * y; }
+	def round(x: float) -> long { return long.truncf(float.round(x)); }
+}
+
+class Storage<C, S> {
+	def narrow(x: C) -> S;
+	def widen(x: S) -> C;
+}
+
+class Same<C> extends Storage<C, C> {
+	def narrow(x: C) -> C { return x; }
+	def widen(x: C) -> C { return x; }
+}
+
+class Demoted extends Storage<double, float> {
+	def narrow(x: double) -> float { return float.roundd(x); }
+	def widen(x: float) -> double { return x; }
+}
+
+def fill<C, S>(c: Compute<C>, s: Storage<C, S>, n: int) -> Array<S> {
+	var xs = Array<S>.new(n);
+	for (i < n) xs[i] = s.narrow(c.tenth());
+	return xs;
+}
+
+def accumulate<C, S>(c: Compute<C>, s: Storage<C, S>, xs: Range<S>, from: int, to: int) -> C {
+	var sum = c.zero();
+	for (x in xs[from ... to]) sum = c.add(sum, s.widen(x));
+	return sum;
+}
+
+def total<C, S>(c: Compute<C>, s: Storage<C, S>, xs: Range<S>, n: int) -> C {
+	return accumulate(c, s, xs, 0, n);
+}
+
+def scaled<C, S>(c: Compute<C>, s: Storage<C, S>, xs: Range<S>, n: int) -> long {
+	return c.round(c.mul(total(c, s, xs, n), c.thousand()));
+}
+
+def report<C, S>(c: Compute<C>, s: Storage<C, S>, n: int) {
+	System.puts(Strings.format1("%d\n", scaled(c, s, fill(c, s, n), n)));
+}
+
+def main() {
+	// Compute in f64, store in f64.
+	report(F64.new(), Same<double>.new(), 1000000);
+	// Compute in f64, store in f32: half the memory.
+	report(F64.new(), Demoted.new(), 1000000);
+	// Compute in f32, store in f32.
+	report(F32.new(), Same<float>.new(), 1000000);
+}

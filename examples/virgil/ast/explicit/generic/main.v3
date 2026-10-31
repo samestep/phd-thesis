@@ -1,0 +1,118 @@
+// Generic over the representation: the index type is a type parameter `R` of
+// an abstract class, and every function that touches an `Expr` takes a type
+// parameter and the pool. Type parameters have no bounds, so the operations
+// come with the pool object, not with `R`; the compiler infers `R` at each
+// call and specializes every function for each `R` it is used at.
+
+enum BinOp { ADD, SUB, MUL, DIV }
+
+type Expr<R> {
+	case Binary(op: BinOp, lhs: R, rhs: R);
+	case Literal(num: long);
+}
+
+class Ast<R> {
+	def add(expr: Expr<R>) -> R;
+	def get(expr: R) -> Expr<R>;
+}
+
+def interp<R>(ast: Ast<R>, expr: R) -> long {
+	match (ast.get(expr)) {
+		Binary(op, lhs, rhs) => {
+			var l = interp(ast, lhs), r = interp(ast, rhs);
+			match (op) {
+				ADD => return l + r;
+				SUB => return l - r;
+				MUL => return l * r;
+				DIV => return if(r == 0, 0, l / r);
+			}
+		}
+		Literal(num) => return num;
+	}
+}
+
+def lit<R>(ast: Ast<R>, n: long) -> R {
+	return ast.add(Expr.Literal(n));
+}
+
+def bin<R>(ast: Ast<R>, op: BinOp, lhs: R, rhs: R) -> R {
+	return ast.add(Expr.Binary(op, lhs, rhs));
+}
+
+// Operators are stored as codes: 0 is a literal, and BinOp n is n + 1.
+def code(op: BinOp) -> long {
+	return op.tag + 1;
+}
+
+def binops = [BinOp.ADD, BinOp.SUB, BinOp.MUL, BinOp.DIV];
+
+def node<R>(op: long, lhs: long, rhs: long, ref: int -> R) -> Expr<R> {
+	if (op == 0) return Expr.Literal(lhs);
+	return Expr.Binary(binops[op - 1], ref(int.!(lhs)), ref(int.!(rhs)));
+}
+
+// Representation 1: a node is an index into parallel lists.
+type Idx(index: int) #unboxed;
+
+class Columns extends Ast<Idx> {
+	def ops = Vector<long>.new();
+	def lhs = Vector<long>.new();
+	def rhs = Vector<long>.new();
+
+	def add(expr: Expr<Idx>) -> Idx {
+		match (expr) {
+			Binary(op, l, r) => {
+				ops.put(code(op));
+				lhs.put(l.index);
+				rhs.put(r.index);
+			}
+			Literal(num) => {
+				ops.put(0);
+				lhs.put(num);
+				rhs.put(0);
+			}
+		}
+		return Idx(ops.length - 1);
+	}
+
+	def get(expr: Idx) -> Expr<Idx> {
+		var i = expr.index;
+		return node(ops[i], lhs[i], rhs[i], Idx);
+	}
+}
+
+// Representation 2: a node is an index into one list of triples.
+type Slot(index: int) #unboxed;
+
+class Triples extends Ast<Slot> {
+	def triples = Vector<long>.new();
+
+	def add(expr: Expr<Slot>) -> Slot {
+		match (expr) {
+			Binary(op, l, r) => triples.put(code(op)).put(l.index).put(r.index);
+			Literal(num) => triples.put(0).put(num).put(0);
+		}
+		return Slot(triples.length / 3 - 1);
+	}
+
+	def get(expr: Slot) -> Expr<Slot> {
+		var i = 3 * expr.index;
+		return node(triples[i], triples[i + 1], triples[i + 2], Slot);
+	}
+}
+
+def print(n: long) {
+	System.puts(Strings.format1("%d\n", n));
+}
+
+def main() {
+	var pool = Columns.new();
+	var e = bin(pool, BinOp.DIV, bin(pool, BinOp.MUL, bin(pool, BinOp.SUB, lit(pool, 7), lit(pool, 10)), lit(pool, 7)), lit(pool, 2));
+	print(interp(pool, e));
+	{
+		var pool = Triples.new();
+		var f = bin(pool, BinOp.DIV, bin(pool, BinOp.ADD, lit(pool, 4), lit(pool, 4)), bin(pool, BinOp.SUB, lit(pool, 4), lit(pool, 4)));
+		print(interp(pool, f));
+	}
+	print(interp(pool, e));
+}
