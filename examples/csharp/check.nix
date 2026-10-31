@@ -4,7 +4,15 @@
   # On macOS, .NET finds the local app data folder that file-based apps
   # keep their artifacts in through Foundation, which ignores $HOME (the
   # build user's home is /var/empty) unless CFFIXED_USER_HOME says otherwise.
+  #
+  # Named mutexes live under /tmp/.dotnet/shm, and .NET 10 creates that and
+  # its parent without a lock, so two processes doing it at once can fail
+  # with `stat("/tmp/.dotnet/shm", ...) == -1; errno == ENOENT` (fixed
+  # upstream in dotnet/runtime#130061, after 10.0). Builds share /tmp on
+  # macOS, so make both first, with the permissions .NET gives them; everything
+  # under them is created holding a lock on the second.
   run = ''
+    (umask 0 && mkdir -p /tmp/.dotnet/shm)
     export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
     export DOTNET_CLI_HOME=$HOME NUGET_PACKAGES=$HOME/nuget NuGetAudit=false
     export CFFIXED_USER_HOME=$HOME
