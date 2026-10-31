@@ -85,6 +85,10 @@
           # own where its toolchain differs. Whatever an example prints must
           # match `examples/<program>.txt`. A `check.nix` gets `pkgs`, this
           # flake's `inputs` (for sources nixpkgs doesn't have), and `moss`.
+          # It may also list `shared` files, paths under `examples/<language>`
+          # that its examples import: they are copied in beside the example
+          # where they sit in the repository, so a relative import reaches
+          # them in the build as it does in a checkout.
           # Each example as the list of its path segments under `examples`.
           examples =
             let
@@ -128,15 +132,29 @@
               };
               name = "example-${lib.concatStringsSep "-" segments}";
               dir = under segments;
+              shared = spec.shared or [ ];
+              # The example's place under its language's directory.
+              rel = lib.concatStringsSep "/" (lib.drop 1 segments);
+              setup =
+                if shared == [ ] then
+                  "cp -r ${dir} src\nchmod -R u+w src\ncd src"
+                else
+                  ''
+                    mkdir -p tree/${rel}
+                    cp -r ${dir}/. tree/${rel}
+                    ${lib.concatMapStrings (
+                      file: "cp ${under [ (lib.head segments) ] + "/${file}"} tree/${file}\n"
+                    ) shared}
+                    chmod -R u+w tree
+                    cd tree/${rel}
+                  '';
             in
             lib.nameValuePair name (
               if !(spec.supported or true) then
                 null
               else
                 pkgs.runCommandCC name { nativeBuildInputs = spec.packages or [ ]; } ''
-                  cp -r ${dir} src
-                  chmod -R u+w src
-                  cd src
+                  ${setup}
                   export HOME=$(mktemp -d)
                   {
                     ${spec.run}

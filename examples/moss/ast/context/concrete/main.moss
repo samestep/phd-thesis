@@ -2,6 +2,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
+import "../../../common.moss" use print_int;
 
 assume Std {
   # region: types
@@ -110,16 +111,6 @@ assume Std {
     } else {
       Div
     }
-  }
-
-  fn print_int(n: Int) {
-    if n < 0 {
-      putchar(char::hyphen);
-      print_int(-n);
-      return;
-    }
-    if n >= 10 { print_int(n / 10); }
-    putchar((n % 10 + char::digit0.code()).char());
   }
 
   # region: main

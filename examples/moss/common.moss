@@ -1,0 +1,25 @@
+# What every Moss example here prints with, and the part of `Std` that
+# real-valued code needs: what the other languages' examples get from
+# their standard libraries. Imported by a relative path, so the examples'
+# `check.nix` lists it as `shared`.
+
+assume Std {
+  fn print_int(n: Int) {
+    if n < 0 {
+      putchar(char::hyphen);
+      print_int(-n);
+      return;
+    }
+    if n >= 10 { print_int(n / 10); }
+    putchar((n % 10 + char::digit0.code()).char());
+  }
+
+  fn print_line(n: Int) {
+    print_int(n);
+    putchar(char::newline);
+  }
+}
+
+# Integer literals, and `Float` with its arithmetic, `float`, and so
+# decimal literals.
+context Reals = Int, zero, one, Int.add, Int.mul, Float, float, Float.add, Float.sub, Float.mul, Float.div;

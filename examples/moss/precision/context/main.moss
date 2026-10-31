@@ -3,6 +3,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl, Singles, wasi_singles;
 import "wasm.moss" as w use Wasm;
 import "wasip1.moss" use Wasi;
+import "../../common.moss" use print_int;
 
 # How numbers are stored, separately from how they are computed: a list of
 # the stored type, and how a `Float` becomes one and back.
@@ -44,11 +45,6 @@ assume Std, Storage {
   fn total(xs: Store, n: Int): Float { accumulate(xs, 0, n) }
 
   fn scaled(xs: Store, n: Int): Int { (total(xs, n) * 1000.0).round() }
-
-  fn print_int(n: Int) {
-    if n >= 10 { print_int(n / 10); }
-    putchar((n % 10 + char::digit0.code()).char());
-  }
 
   fn report(n: Int) {
     print_int(scaled(fill(n), n));

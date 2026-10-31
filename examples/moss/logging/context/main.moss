@@ -2,6 +2,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
+import "../../common.moss" use print_line;
 
 # The interface of a logging library: each level can be logged if the
 # current maximum level allows it, or forced regardless.
@@ -24,15 +25,6 @@ assume Std {
 
   fn noop(message: Int) {}
 
-  fn print_int(n: Int) {
-    if n >= 10 { print_int(n / 10); }
-    putchar((n % 10 + char::digit0.code()).char());
-  }
-
-  fn print_line(message: Int) {
-    print_int(message);
-    putchar(char::newline);
-  }
 }
 
 functor MaxLevelInfo: Std, ForceLog -> MaybeLog {

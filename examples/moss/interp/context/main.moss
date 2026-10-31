@@ -2,6 +2,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
+import "../../common.moss" use print_line;
 
 unit Add;
 unit Sub;
@@ -90,20 +91,6 @@ assume Std, Ast {
 }
 
 assume Std {
-  fn print_int(n: Int) {
-    if n < 0 {
-      putchar(char::hyphen);
-      print_int(-n);
-      return;
-    }
-    if n >= 10 { print_int(n / 10); }
-    putchar((n % 10 + char::digit0.code()).char());
-  }
-
-  fn print_line(n: Int) {
-    print_int(n);
-    putchar(char::newline);
-  }
 
   # A pool: a node is an index into one list of triples.
   type Slot Int;
@@ -156,11 +143,6 @@ assume Std {
   type Sat Int;
 
   fn int_of(s: Sat): Int { match s { Sat n => n } }
-
-  fn Sat.add(rhs: Sat): Sat { Sat ((float(int_of(this)) + float(int_of(rhs))).trunc()) }
-  fn Sat.sub(rhs: Sat): Sat { Sat ((float(int_of(this)) - float(int_of(rhs))).trunc()) }
-  fn Sat.mul(rhs: Sat): Sat { Sat ((float(int_of(this)) * float(int_of(rhs))).trunc()) }
-  fn Sat.div(rhs: Sat): Sat { Sat ((float(int_of(this)) / float(int_of(rhs))).trunc()) }
 }
 
 # region: semantics
@@ -173,10 +155,10 @@ functor Wrapping: Std -> Value, value, print_value {
 
 functor Saturating: Std -> Arith {
   bind Value = Sat;
-  bind Value.add = Sat.add;
-  bind Value.sub = Sat.sub;
-  bind Value.mul = Sat.mul;
-  bind Value.div = Sat.div;
+  bind Value.add = (r) => Sat ((float(int_of(this)) + float(int_of(r))).trunc());
+  bind Value.sub = (r) => Sat ((float(int_of(this)) - float(int_of(r))).trunc());
+  bind Value.mul = (r) => Sat ((float(int_of(this)) * float(int_of(r))).trunc());
+  bind Value.div = (r) => Sat ((float(int_of(this)) / float(int_of(r))).trunc());
   bind value = (n) => Sat (n);
   bind print_value = (v) => print_line(int_of(v));
 }
