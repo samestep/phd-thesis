@@ -1,6 +1,8 @@
-// Context parameters over a generic type class: the given is any `Ast[R]`,
-// so every function that touches an `Expr` takes the index type as a type
-// parameter, inferred from whichever `Ast` the given supplies.
+// Context parameters over a path-dependent type: the given is any `Ast`, and
+// its index type is a member, `ast.Ref`, so no function needs a type
+// parameter, and each given's `Ref` is its own type, so a reference from one
+// pool can't be used with another. The price is a leading `using` clause that
+// names the given, so that later parameters' types can depend on it.
 import scala.collection.mutable.ArrayBuffer
 
 enum BinOp:
@@ -11,11 +13,12 @@ enum Expr[+R]:
   case Literal(num: Long) extends Expr[Nothing]
 import Expr.*
 
-trait Ast[R]:
-  def add(expr: Expr[R]): R
-  def get(expr: R): Expr[R]
+trait Ast:
+  type Ref
+  def add(expr: Expr[Ref]): Ref
+  def get(expr: Ref): Expr[Ref]
 
-def interp[R](expr: R)(using ast: Ast[R]): Long = ast.get(expr) match
+def interp(using ast: Ast)(expr: ast.Ref): Long = ast.get(expr) match
   case Binary(op, lhs, rhs) =>
     val l = interp(lhs)
     val r = interp(rhs)
@@ -26,8 +29,8 @@ def interp[R](expr: R)(using ast: Ast[R]): Long = ast.get(expr) match
       case BinOp.Div => if r == 0 then 0 else l / r
   case Literal(num) => num
 
-def num[R](n: Long)(using ast: Ast[R]): R = ast.add(Literal(n))
-def bin[R](op: BinOp, l: R, r: R)(using ast: Ast[R]): R = ast.add(Binary(op, l, r))
+def num(using ast: Ast)(n: Long): ast.Ref = ast.add(Literal(n))
+def bin(using ast: Ast)(op: BinOp, l: ast.Ref, r: ast.Ref): ast.Ref = ast.add(Binary(op, l, r))
 
 // Operators are stored as codes: 0 is a literal, and BinOp n is n + 1.
 def node[R](op: Long, lhs: Long, rhs: Long, ref: Long => R): Expr[R] =
@@ -36,7 +39,8 @@ def node[R](op: Long, lhs: Long, rhs: Long, ref: Long => R): Expr[R] =
 // Representation 1: a node is an index into parallel lists.
 case class Idx(index: Int)
 
-class Columns extends Ast[Idx]:
+class Columns extends Ast:
+  type Ref = Idx
   private val ops, lhs, rhs = ArrayBuffer[Long]()
   def add(expr: Expr[Idx]): Idx =
     expr match
@@ -50,7 +54,8 @@ class Columns extends Ast[Idx]:
 // Representation 2: a node is an index into one list of triples.
 case class Slot(index: Int)
 
-class Triples extends Ast[Slot]:
+class Triples extends Ast:
+  type Ref = Slot
   private val triples = ArrayBuffer[Long]()
   def add(expr: Expr[Slot]): Slot =
     triples ++= (expr match
@@ -62,11 +67,11 @@ class Triples extends Ast[Slot]:
     node(triples(i), triples(i + 1), triples(i + 2), n => Slot(n.toInt))
 
 @main def run() =
-  given Ast[Idx] = Columns()
+  given Ast = Columns()
   val e = bin(BinOp.Div, bin(BinOp.Mul, bin(BinOp.Sub, num(7), num(10)), num(7)), num(2))
   println(interp(e))
   locally {
-    given Ast[Slot] = Triples()
+    given Ast = Triples()
     println(interp(bin(BinOp.Div, bin(BinOp.Add, num(4), num(4)), bin(BinOp.Sub, num(4), num(4)))))
   }
   println(interp(e))
