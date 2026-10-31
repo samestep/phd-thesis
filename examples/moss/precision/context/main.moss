@@ -1,6 +1,6 @@
 import "access.moss" use Elem;
 import "wasi.moss" use WasiStd;
-import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl, Singles, wasi_singles;
+import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl, SingleLayout, Packed, packed;
 import "wasm.moss" as w use Wasm;
 import "wasip1.moss" use Wasi;
 import "../../common.moss" use print_int;
@@ -67,10 +67,11 @@ assume Wasm, Wasi, Branch {
     # Compute in f64, store in f32: half the memory.
     {
       bind Stored = Single;
-      bind Store = Singles;
-      bind store = wasi_singles;
-      bind Store.push[Elem=Stored] = Singles.push;
-      bind Store.get[Elem=Stored] = Singles.get;
+      bind SingleLayout;
+      bind Store = Packed;
+      bind store = packed;
+      bind Store.push[Elem=Stored] = Packed.push;
+      bind Store.get[Elem=Stored] = Packed.get;
       bind narrow = (x) => Single (w::f32_demote_f64(dbl(x)));
       bind widen = (x) => Double (w::f64_promote_f32(sgl(x)));
       report(1000000);

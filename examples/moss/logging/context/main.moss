@@ -22,17 +22,14 @@ assume Std {
   context ForceLog = force_error, force_warn, force_info, force_debug, force_trace;
 
   context Log = MaybeLog, ForceLog;
-
-  fn noop(message: Int) {}
-
 }
 
 functor MaxLevelInfo: Std, ForceLog -> MaybeLog {
   bind error = force_error;
   bind warn = force_warn;
   bind info = force_info;
-  bind debug = noop;
-  bind trace = noop;
+  bind debug = (message) => {};
+  bind trace = (message) => {};
 }
 
 functor MaxLevelDebug: Std, ForceLog -> MaybeLog {
@@ -40,7 +37,7 @@ functor MaxLevelDebug: Std, ForceLog -> MaybeLog {
   bind warn = force_warn;
   bind info = force_info;
   bind debug = force_debug;
-  bind trace = noop;
+  bind trace = (message) => {};
 }
 
 functor Stdout: Std -> ForceLog {
