@@ -41,9 +41,9 @@ assume Std {
           pool.rhs.push(rhs.index());
         },
         Literal num => {
-          pool.ops.push(zero);
+          pool.ops.push(0);
           pool.lhs.push(num);
-          pool.rhs.push(zero);
+          pool.rhs.push(0);
         },
       }
       ExprRef (i)
@@ -52,7 +52,7 @@ assume Std {
     fn get(expr: ExprRef): Expr {
       let i = expr.index();
       let code = pool.ops.get(i);
-      if code.eq(zero) {
+      if code == 0 {
         Literal (pool.lhs.get(i))
       } else {
         Binary {
@@ -71,10 +71,10 @@ assume Std {
           let l = lhs.interp();
           let r = rhs.interp();
           match op {
-            Add => l.add(r),
-            Sub => l.sub(r),
-            Mul => l.mul(r),
-            Div => if r.eq(zero) { zero } else { l.div(r) },
+            Add => l + r,
+            Sub => l - r,
+            Mul => l * r,
+            Div => if r == 0 { 0 } else { l / r },
           }
         },
         Literal num => num,
@@ -93,19 +93,19 @@ assume Std {
 
   fn op_code(op: BinOp): Int {
     match op {
-      Add => one,
-      Sub => one.add(one),
-      Mul => one.add(one).add(one),
-      Div => one.shl(one.add(one)),
+      Add => 1,
+      Sub => 2,
+      Mul => 3,
+      Div => 4,
     }
   }
 
   fn op_of(code: Int): BinOp {
-    if code.eq(one) {
+    if code == 1 {
       Add
-    } else if code.eq(one.add(one)) {
+    } else if code == 2 {
       Sub
-    } else if code.eq(one.add(one).add(one)) {
+    } else if code == 3 {
       Mul
     } else {
       Div
@@ -113,31 +113,24 @@ assume Std {
   }
 
   fn print_int(n: Int) {
-    if n.lt(zero) {
+    if n < 0 {
       putchar(char::hyphen);
-      print_int(zero.sub(n));
-      return ();
+      print_int(-n);
+      return;
     }
-    let ten = one.shl(one.add(one).add(one)).add(one.add(one));
-    if n.ge(ten) { print_int(n.div(ten)); }
-    putchar(n.rem(ten).add(char::digit0.code()).char());
+    if n >= 10 { print_int(n / 10); }
+    putchar((n % 10 + char::digit0.code()).char());
   }
 
   # region: main
-  fn elsewhere() {
-    bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
-    let four = one.shl(one.add(one));
-    report(bin(Div, bin(Add, lit(four), lit(four)), bin(Sub, lit(four), lit(four))));
-  }
-
   fn demo() {
     bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
-    let two = one.add(one);
-    let seven = two.shl(two).sub(one);
-    let ten = seven.add(two).add(one);
-    let e = bin(Div, bin(Mul, bin(Sub, lit(seven), lit(ten)), lit(seven)), lit(two));
+    let e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2));
     report(e);
-    elsewhere();
+    {
+      bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
+      report(bin(Div, bin(Add, lit(4), lit(4)), bin(Sub, lit(4), lit(4))));
+    }
     report(e);
   }
   # endregion
