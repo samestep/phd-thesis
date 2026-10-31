@@ -167,6 +167,57 @@
         "type": "github"
       }
     },
+    "roc-basic-cli": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-c6QcIifW7atjV9i5+AT5Y449u4+1r7als7nEFy/ofOY=",
+        "type": "file",
+        "url": "https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br"
+      }
+    },
+    "roc-linux-arm64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1757409116,
+        "narHash": "sha256-xByglPWnxh+wysIlNWL5XpyR88tSh9ldUoq4FPZCX5c=",
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_arm64-alpha4-rolling.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_arm64-alpha4-rolling.tar.gz"
+      }
+    },
+    "roc-linux-x86_64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1757408869,
+        "narHash": "sha256-BHBEysRYtwSMi7bIO3sFZX1ZdQVcBrveTmKRh6TIyio=",
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_x86_64-alpha4-rolling.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_x86_64-alpha4-rolling.tar.gz"
+      }
+    },
+    "roc-macos-arm64": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1757413632,
+        "narHash": "sha256-bQPNecfVTf1pkJxya0K/matd4HtwsEvkmxR8NiwhQPw=",
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-macos_apple_silicon-alpha4-rolling.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-macos_apple_silicon-alpha4-rolling.tar.gz"
+      }
+    },
     "root": {
       "inputs": {
         "effekt": "effekt",
@@ -175,7 +226,11 @@
         "granule-macos-arm64": "granule-macos-arm64",
         "moss": "moss",
         "nixpkgs": "nixpkgs",
-        "ocaml-modular-implicits": "ocaml-modular-implicits"
+        "ocaml-modular-implicits": "ocaml-modular-implicits",
+        "roc-basic-cli": "roc-basic-cli",
+        "roc-linux-arm64": "roc-linux-arm64",
+        "roc-linux-x86_64": "roc-linux-x86_64",
+        "roc-macos-arm64": "roc-macos-arm64"
       }
     },
     "rust-overlay": {

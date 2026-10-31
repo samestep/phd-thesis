@@ -25,6 +25,26 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    # Roc's old (Rust) compiler, which has module params; the new Zig one
+    # doesn't. Nixpkgs packages this release only for x86_64 Linux.
+    roc-linux-x86_64 = {
+      url = "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_x86_64-alpha4-rolling.tar.gz";
+      flake = false;
+    };
+    roc-linux-arm64 = {
+      url = "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-linux_arm64-alpha4-rolling.tar.gz";
+      flake = false;
+    };
+    roc-macos-arm64 = {
+      url = "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-macos_apple_silicon-alpha4-rolling.tar.gz";
+      flake = false;
+    };
+    # The basic-cli platform release that goes with it, with prebuilt hosts
+    # for every target. It's a Brotli tarball, which Nix can't unpack.
+    roc-basic-cli = {
+      url = "file+https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br";
+      flake = false;
+    };
     ocaml-modular-implicits = {
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
