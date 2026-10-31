@@ -39,8 +39,10 @@ let
       else
         # The macOS binary links zstd from Homebrew. Its linker asks
         # `sw_vers` for the deployment target and looks for the SDK under
-        # /Library, so point it at Nixpkgs' instead. (It still signs the
-        # executable with /usr/bin/codesign.)
+        # /Library, so point it at Nixpkgs' instead, plus libresolv, which
+        # that SDK lacks: otherwise `-lresolv` finds the SDK under /Library,
+        # which may be newer than the linker understands. (It still signs
+        # the executable with /usr/bin/codesign.)
         ''
           install -Dm755 roc $out/bin/roc
           install_name_tool -change /opt/homebrew/opt/zstd/lib/libzstd.1.dylib \
@@ -49,7 +51,7 @@ let
           printf '#!/bin/sh\necho ${stdenv.hostPlatform.darwinMinVersion}\n' > $out/libexec/sw_vers
           chmod +x $out/libexec/sw_vers
           wrapProgram $out/bin/roc \
-            --set ROC_LINK_FLAGS "-L${sdk}/usr/lib -F${sdk}/System/Library/Frameworks" \
+            --set ROC_LINK_FLAGS "-L${sdk}/usr/lib -L${lib.getLib pkgs.darwin.libresolv}/lib -F${sdk}/System/Library/Frameworks" \
             --prefix PATH : $out/libexec:${lib.makeBinPath [ stdenv.cc ]}
         '';
   };
