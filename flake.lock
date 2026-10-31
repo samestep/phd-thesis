@@ -13,6 +13,50 @@
         "url": "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz"
       }
     },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1763759067,
+        "narHash": "sha256-LlLt2Jo/gMNYAwOgdRQBrsRoOz7BPRkzvNaI/fzXi2Q=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "2cccadc7357c0ba201788ae99c4dfa90728ef5e0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "granule": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "haskell-flake": "haskell-flake",
+        "haskell-src-exts": "haskell-src-exts",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1766071441,
+        "narHash": "sha256-dEPmHq5MqLenwDvDCJb0VFOm1ZTJTP8OhI/FuYqT+I4=",
+        "owner": "granule-project",
+        "repo": "granule",
+        "rev": "645e5e0bd89c0d5ace9445219f7e801e8fe56479",
+        "type": "github"
+      },
+      "original": {
+        "owner": "granule-project",
+        "repo": "granule",
+        "rev": "645e5e0bd89c0d5ace9445219f7e801e8fe56479",
+        "type": "github"
+      }
+    },
     "granule-linux-x86_64": {
       "flake": false,
       "locked": {
@@ -37,6 +81,37 @@
       "original": {
         "type": "tarball",
         "url": "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-macos_arm64.zip"
+      }
+    },
+    "haskell-flake": {
+      "locked": {
+        "lastModified": 1763904090,
+        "narHash": "sha256-Mq99c4O6Ovx/JQgi6B6fnI9xR77nQ9+GcFTM2113nMI=",
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "rev": "73c006f8e6531acab28bbde362ae8f13ee0ac72b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "haskell-flake",
+        "type": "github"
+      }
+    },
+    "haskell-src-exts": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1675916232,
+        "narHash": "sha256-iQu0+UvTuHZ2nmhJ2AQQj4yabspWB5qF37ncFD5gwhw=",
+        "owner": "jackohughes",
+        "repo": "haskell-src-exts",
+        "rev": "5c2647fa0746bdac046897f5a6b7e4f5ef3afa79",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jackohughes",
+        "repo": "haskell-src-exts",
+        "type": "github"
       }
     },
     "moss": {
@@ -95,6 +170,7 @@
     "root": {
       "inputs": {
         "effekt": "effekt",
+        "granule": "granule",
         "granule-linux-x86_64": "granule-linux-x86_64",
         "granule-macos-arm64": "granule-macos-arm64",
         "moss": "moss",

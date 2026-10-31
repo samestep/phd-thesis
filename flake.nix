@@ -17,6 +17,14 @@
       url = "https://github.com/granule-project/granule/releases/download/v0.9.6.0/granule-v0.9.6.0-macos_arm64.zip";
       flake = false;
     };
+    # Granule's own flake, for platforms without a release binary: its
+    # 0.9.6.0 release plus the fix that last made the flake build (#280).
+    # The next commit (#291) broke it again.
+    granule = {
+      url = "github:granule-project/granule/645e5e0bd89c0d5ace9445219f7e801e8fe56479";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
     ocaml-modular-implicits = {
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
