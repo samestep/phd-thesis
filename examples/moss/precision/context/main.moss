@@ -1,114 +1,92 @@
+import "access.moss" use Elem;
 import "wasi.moss" use WasiStd;
-import "wasistd.moss" use Branch, WasiFloats32, Num, raw, Ints, Double, Single, dbl, sgl;
-import "wasm.moss" as w use Wasm, I64;
+import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl, Singles, wasi_singles;
+import "wasm.moss" as w use Wasm;
 import "wasip1.moss" use Wasi;
 
-# How numbers are stored, separately from how they are computed: a stored
-# type, how a `Float` becomes one and back, and its layout in an `IntList`
-# (`width` words each).
+# How numbers are stored, separately from how they are computed: a list of
+# the stored type, and how a `Float` becomes one and back.
 type Stored;
+type Store;
 
-assume Std, Stored {
+assume Std, Stored, Store {
+  fn store(): Store;
   fn narrow(x: Float): Stored;
   fn widen(x: Stored): Float;
-  fn put(x: Stored, list: IntList);
-  fn take(list: IntList, index: Int): Stored;
-  val width: Int;
-  context Storage = Stored, narrow, widen, put, take, width;
+  context Storage =
+    Stored, Store, store, narrow, widen,
+    Store.push[Elem=Stored], Store.get[Elem=Stored];
 }
 
-# Written once: fill a list with `n` copies of 0.1, computed in `Float`
-# and stored as `Stored`, then sum them in `Float`.
+# Written once, against `Float` and `Storage`, with no layer naming either:
+# fill a list with `n` copies of 0.1, then sum it.
 assume Std, Storage {
+  fn fill(n: Int): Store {
+    let xs = store();
+    var i = 0;
+    while i < n {
+      xs.push(narrow(0.1));
+      i = i + 1;
+    }
+    xs
+  }
+
+  fn accumulate(xs: Store, from: Int, to: Int): Float {
+    var sum = 0.0;
+    var i = from;
+    while i < to {
+      sum = sum + widen(xs.get(i));
+      i = i + 1;
+    }
+    sum
+  }
+
+  fn total(xs: Store, n: Int): Float { accumulate(xs, 0, n) }
+
+  fn scaled(xs: Store, n: Int): Int { (total(xs, n) * 1000.0).round() }
+
   fn print_int(n: Int) {
     if n >= 10 { print_int(n / 10); }
     putchar((n % 10 + char::digit0.code()).char());
   }
 
   fn report(n: Int) {
-    let list = int_list();
-    var i = 0;
-    while i < n {
-      put(narrow(0.1), list);
-      i = i + 1;
-    }
-    var sum = 0.0;
-    i = 0;
-    while i < n {
-      sum = sum + widen(take(list, i * width));
-      i = i + 1;
-    }
-    print_int((sum * 1000.0).round());
+    print_int(scaled(fill(n), n));
     putchar(char::newline);
   }
-}
-
-# The storage formats, over the standard library's own representations:
-# `Single` and `Double` are WASI's f32 and f64 `Float`s, and `Ints` its
-# `IntList`, one i32 per word.
-assume Wasm, Branch {
-  fn bits32(x: Single): Num { Num (w::i32_reinterpret_f32(sgl(x))) }
-  fn from_bits32(n: Num): Single { Single (w::f32_reinterpret_i32(raw(n))) }
-
-  fn put_single(x: Single, list: Ints) { list.push(bits32(x)); }
-  fn take_single(list: Ints, index: Num): Single { from_bits32(list.get(index)) }
-
-  fn put_double(x: Double, list: Ints) {
-    let bits = w::i64_reinterpret_f64(dbl(x));
-    list.push(Num (w::i32_wrap_i64(bits)));
-    list.push(Num (w::i32_wrap_i64(w::i64_shr_u(bits, thirty_two()))));
-  }
-  fn take_double(list: Ints, index: Num): Double {
-    let low = w::i64_extend_i32_u(raw(list.get(index)));
-    let high = w::i64_extend_i32_u(raw(list.get(Num (w::i32_add(raw(index), w::i32_one)))));
-    Double (w::f64_reinterpret_i64(w::i64_or(low, w::i64_shl(high, thirty_two()))))
-  }
-
-  # 32, the shift between an f64's two words.
-  fn thirty_two(): I64 {
-    let two = w::i32_add(w::i32_one, w::i32_one);
-    let five = w::i32_add(two, w::i32_add(two, w::i32_one));
-    w::i64_extend_i32_u(w::i32_shl(w::i32_one, five))
-  }
-
-  fn single(x: Single): Single { x }
-  fn double(x: Double): Double { x }
-  fn demote(x: Double): Single { Single (w::f32_demote_f64(dbl(x))) }
-  fn promote(x: Single): Double { Double (w::f64_promote_f32(sgl(x))) }
 }
 
 assume Wasm, Wasi, Branch {
   fn main() {
     bind WasiStd;
-    # Compute in f64, store in f64.
+    # Compute in f64, store in f64: a list of `Float`.
     {
-      bind Stored = Double;
-      bind narrow = double;
-      bind widen = double;
-      bind put = put_double;
-      bind take = take_double;
-      bind width = 2;
+      bind Stored = Float;
+      bind Store = FloatList;
+      bind store = float_list;
+      bind narrow = (x) => x;
+      bind widen = (x) => x;
       report(1000000);
     }
     # Compute in f64, store in f32: half the memory.
     {
       bind Stored = Single;
-      bind narrow = demote;
-      bind widen = promote;
-      bind put = put_single;
-      bind take = take_single;
-      bind width = 1;
+      bind Store = Singles;
+      bind store = wasi_singles;
+      bind Store.push[Elem=Stored] = Singles.push;
+      bind Store.get[Elem=Stored] = Singles.get;
+      bind narrow = (x) => Single (w::f32_demote_f64(dbl(x)));
+      bind widen = (x) => Double (w::f64_promote_f32(sgl(x)));
       report(1000000);
     }
     # Compute in f32, store in f32.
     {
       bind WasiFloats32;
-      bind Stored = Single;
-      bind narrow = single;
-      bind widen = single;
-      bind put = put_single;
-      bind take = take_single;
-      bind width = 1;
+      bind Stored = Float;
+      bind Store = FloatList;
+      bind store = float_list;
+      bind narrow = (x) => x;
+      bind widen = (x) => x;
       report(1000000);
     }
   }

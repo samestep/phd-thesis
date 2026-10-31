@@ -1,9 +1,13 @@
-// Type parameters with a given type class for each choice, so the kernel
-// names both types and both givens, and constants are members of the compute
-// class. A `ClassTag` makes the storage a packed `Array[Float]` or
-// `Array[Double]`, but the JVM erases `C` and `S` to `Object`: each element is
-// boxed on its way into and out of the array, and each operation is an
-// interface call on boxes, unless the JIT inlines them and elides the boxes.
+// Type parameters with a given type class for each choice, so every function
+// in the chain names both types and both givens in its signature, though the
+// compiler infers them at each call from the argument and expected types and
+// the givens in scope; only `report` has nothing to infer `S` from, so it
+// names both for `fill`. Constants are members of the compute class. A
+// `ClassTag` (needed only by `fill`, and so by `report`) makes the storage a
+// packed `Array[Float]` or `Array[Double]`, but the JVM erases `C` and `S` to
+// `Object`: each element is boxed on its way into and out of the array, and
+// each operation is an interface call on boxes, unless the JIT inlines them
+// and elides the boxes.
 import scala.collection.mutable.ArrayBuilder
 import scala.reflect.ClassTag
 
@@ -46,13 +50,24 @@ given Storage[Double, Float] with
   def narrow(x: Double) = x.toFloat
   def widen(x: Float) = x.toDouble
 
-def report[C, S: ClassTag](n: Int)(using c: Compute[C], s: Storage[C, S]) =
+def fill[C, S: ClassTag](n: Int)(using c: Compute[C], s: Storage[C, S]): Array[S] =
   val builder = ArrayBuilder.make[S]
   for _ <- 0 until n do builder += s.narrow(c.tenth)
-  val list = builder.result()
+  builder.result()
+
+def accumulate[C, S](xs: Array[S], from: Int, to: Int)(using c: Compute[C], s: Storage[C, S]): C =
   var sum = c.zero
-  for x <- list do sum = sum + s.widen(x)
-  println((sum * c.thousand).round)
+  for i <- from until to do sum = sum + s.widen(xs(i))
+  sum
+
+def total[C, S](xs: Array[S], n: Int)(using Compute[C], Storage[C, S]): C =
+  accumulate(xs, 0, n)
+
+def scaled[C, S](xs: Array[S], n: Int)(using c: Compute[C], s: Storage[C, S]): Long =
+  (total(xs, n) * c.thousand).round
+
+def report[C, S: ClassTag](n: Int)(using Compute[C], Storage[C, S]) =
+  println(scaled(fill[C, S](n), n))
 
 @main def run() =
   // Compute in f64, store in f64.
