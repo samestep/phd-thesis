@@ -1,0 +1,47 @@
+-- The tree Sampson starts from: each node holds its children directly, so
+-- nothing needs a pool; grades say how a value may be used ([] = freely).
+data Bool = False | True
+
+data BinOp = Add | Sub | Mul | Div
+
+data Expr = Binary BinOp Expr Expr | Literal (Int [])
+
+sign : Int [] -> Int
+sign [x] = if x < 0 then 0 - 1 else 1
+
+absI : Int [] -> Int
+absI [x] = sign [x] * x
+
+-- Granule's `div` floors; the post's division truncates toward zero.
+quot : Int [] -> Int [] -> Int
+quot [x] [y] =
+  if y == 0 then 0 else sign [x] * sign [y] * div (absI [x]) (absI [y])
+
+apply : BinOp -> Int [] -> Int [] -> Int []
+apply Add [l] [r] = [l + r];
+apply Sub [l] [r] = [l - r];
+apply Mul [l] [r] = [l * r];
+apply Div [l] [r] = [quot [l] [r]]
+
+interp : Expr -> Int []
+interp (Binary op lhs rhs) = apply op (interp lhs) (interp rhs);
+interp (Literal num) = num
+
+lit : Int [] -> Expr
+lit n = Literal n
+
+bin : BinOp -> Expr -> Expr -> Expr
+bin op l r = Binary op l r
+
+show : Int [] -> String
+show [n] = stringAppend (showInt n) "\n"
+
+-- `e` is interpreted twice, so it is boxed: `Expr []` may be used freely.
+report : Expr [] -> Int [] -> String
+report [e] inner = stringAppend (show (interp e)) (stringAppend (show inner) (show (interp e)))
+
+main : () <{Stdout}>
+main =
+  let inner = (let f = bin Div (bin Add (lit [4]) (lit [4])) (bin Sub (lit [4]) (lit [4]))
+               in interp f)
+  in toStdout (report [bin Div (bin Mul (bin Sub (lit [7]) (lit [10])) (lit [7])) (lit [2])] inner)

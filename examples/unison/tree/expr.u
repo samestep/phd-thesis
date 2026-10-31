@@ -1,0 +1,41 @@
+-- The tree Sampson starts from: each node holds its children directly, and
+-- the runtime frees them, so nothing needs a pool.
+type BinOp = Add | Sub | Mul | Div
+
+type Expr = Binary BinOp Expr Expr | Literal Int
+
+-- `Int./` floors; the post's division truncates toward zero.
+quot : Int -> Int -> Int
+quot x y =
+  q = x Int./ y
+  if Int.eq (q Int.* y) x then q
+  else if Int.lt (x Int.* y) +0 then q Int.+ +1
+  else q
+
+interp : Expr -> Int
+interp = cases
+  Expr.Binary op lhs rhs ->
+    l = interp lhs
+    r = interp rhs
+    match op with
+      BinOp.Add -> l Int.+ r
+      BinOp.Sub -> l Int.- r
+      BinOp.Mul -> l Int.* r
+      BinOp.Div -> if Int.eq r +0 then +0 else quot l r
+  Expr.Literal num -> num
+
+lit n = Expr.Literal n
+bin op l r = Expr.Binary op l r
+
+say : Int ->{IO} ()
+say n = match putBytes.impl (stdHandle StdOut) (Text.toUtf8 (Int.toText n Text.++ "\n")) with
+  _ -> ()
+
+main : '{IO} ()
+main = do
+  e = bin BinOp.Div (bin BinOp.Mul (bin BinOp.Sub (lit +7) (lit +10)) (lit +7)) (lit +2)
+  say (interp e)
+  let
+    f = bin BinOp.Div (bin BinOp.Add (lit +4) (lit +4)) (bin BinOp.Sub (lit +4) (lit +4))
+    say (interp f)
+  say (interp e)

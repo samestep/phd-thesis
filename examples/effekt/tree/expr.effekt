@@ -1,0 +1,39 @@
+// The tree Sampson starts from: each node holds its children directly, and
+// the runtime frees them, so nothing needs a pool.
+type BinOp {
+  Add()
+  Sub()
+  Mul()
+  Div()
+}
+
+type Expr {
+  Binary(op: BinOp, lhs: Expr, rhs: Expr)
+  Literal(num: Int)
+}
+
+def interp(e: Expr): Int = e match {
+  case Binary(op, lhs, rhs) =>
+    val l = interp(lhs)
+    val r = interp(rhs)
+    op match {
+      case Add() => l + r
+      case Sub() => l - r
+      case Mul() => l * r
+      case Div() => if (r == 0) 0 else l / r
+    }
+  case Literal(num) => num
+}
+
+def lit(n: Int): Expr = Literal(n)
+def bin(op: BinOp, l: Expr, r: Expr): Expr = Binary(op, l, r)
+
+def main() = {
+  val e = bin(Div(), bin(Mul(), bin(Sub(), lit(7), lit(10)), lit(7)), lit(2))
+  println(interp(e))
+  locally {
+    val f = bin(Div(), bin(Add(), lit(4), lit(4)), bin(Sub(), lit(4), lit(4)))
+    println(interp(f))
+  }
+  println(interp(e))
+}

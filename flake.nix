@@ -55,41 +55,55 @@
           # Every example is a directory of source files,
           # `examples/<language>/<mechanism>/<variant>`, where the variant is
           # `concrete` (a fixed index type), `generic` (an abstract one) or
-          # `dynamic` (dispatch at run time). The nearest `check.nix` above it
-          # says which packages it needs and how to run it: usually the
-          # language's, and a mechanism's own where its toolchain differs.
-          # Whatever an example prints must match `examples/expected.txt`. A
-          # `check.nix` gets `pkgs`, this flake's `inputs` (for sources nixpkgs
-          # doesn't have), and `moss`.
+          # `dynamic` (dispatch at run time); or `examples/<language>/tree`, the
+          # pointer-based tree that flattening starts from, which has no pool to
+          # pass. The nearest `check.nix` above it says which packages it needs
+          # and how to run it: usually the language's, and a mechanism's own
+          # where its toolchain differs. Whatever an example prints must match
+          # `examples/expected.txt`. A `check.nix` gets `pkgs`, this flake's
+          # `inputs` (for sources nixpkgs doesn't have), and `moss`.
           subdirs =
             dir: lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir));
+          # Each example as the list of its path segments under `examples`.
           examples = lib.concatMap (
             language:
             lib.concatMap (
               mechanism:
-              map (variant: { inherit language mechanism variant; }) (subdirs ./examples/${language}/${mechanism})
+              if mechanism == "tree" then
+                [
+                  [
+                    language
+                    "tree"
+                  ]
+                ]
+              else
+                map (variant: [
+                  language
+                  mechanism
+                  variant
+                ]) (subdirs ./examples/${language}/${mechanism})
             ) (subdirs ./examples/${language})
           ) (subdirs ./examples);
           example =
-            {
-              language,
-              mechanism,
-              variant,
-            }:
+            segments:
             let
-              own = ./examples/${language}/${mechanism}/check.nix;
-              spec = import (if builtins.pathExists own then own else ./examples/${language}/check.nix) {
+              under = segments: ./examples + "/${lib.concatStringsSep "/" segments}";
+              # The directories above the example, nearest first.
+              parents = map (n: lib.take n segments) (lib.reverseList (lib.range 1 (lib.length segments - 1)));
+              check = lib.findFirst builtins.pathExists null (map (dir: under dir + "/check.nix") parents);
+              spec = import check {
                 inherit pkgs inputs;
                 moss = mossPkg;
               };
-              name = "example-${language}-${mechanism}-${variant}";
+              name = "example-${lib.concatStringsSep "-" segments}";
+              dir = under segments;
             in
             lib.nameValuePair name (
               if !(spec.supported or true) then
                 null
               else
                 pkgs.runCommandCC name { nativeBuildInputs = spec.packages or [ ]; } ''
-                  cp -r ${./examples/${language}/${mechanism}/${variant}} src
+                  cp -r ${dir} src
                   chmod -R u+w src
                   cd src
                   export HOME=$(mktemp -d)
