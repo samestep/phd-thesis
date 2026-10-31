@@ -5,7 +5,7 @@
     pkgs.jdk
   ];
   run = ''
-    kotlinc -nowarn expr.kt -include-runtime -d expr.jar >&2
-    java -jar expr.jar
+    kotlinc -nowarn main.kt -include-runtime -d main.jar >&2
+    java -jar main.jar
   '';
 }

@@ -4,7 +4,7 @@
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
 
-#snippet("examples/moss/context/concrete/expr.moss", region: "interp")
+#snippet("examples/moss/ast/context/concrete/main.moss", region: "interp")
 
 The most _convenient_ way to write this code would be if `foo` had a field called `bar`. But this causes problems if there are a _million_ `Foo`s.
 

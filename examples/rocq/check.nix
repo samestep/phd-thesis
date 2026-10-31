@@ -4,5 +4,5 @@
     pkgs.rocq-core
     pkgs.rocqPackages.stdlib
   ];
-  run = "rocq compile expr.v | sed -n 's/^ *= //p'";
+  run = "rocq compile main.v | sed -n 's/^ *= //p'";
 }

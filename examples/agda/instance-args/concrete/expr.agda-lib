@@ -1,3 +1,0 @@
-name: expr
-depend: standard-library
-include: .

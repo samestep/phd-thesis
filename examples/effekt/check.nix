@@ -7,7 +7,7 @@
     pkgs.nodejs
   ];
   run = ''
-    java -Xss32m -jar ${inputs.effekt}/bin/effekt --build expr.effekt >&2
-    node -e "require('./out/expr.js').main()"
+    java -Xss32m -jar ${inputs.effekt}/bin/effekt --build main.effekt >&2
+    node -e "require('./out/main.js').main()"
   '';
 }

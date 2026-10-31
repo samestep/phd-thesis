@@ -26,7 +26,7 @@ in
         tar -xzf ${tgz} -C node_modules/${name} --strip-components=1
       '') types
     )}
-    tsc --noEmit --strict --erasableSyntaxOnly --types node expr.mts >&2
-    node expr.mts
+    tsc --noEmit --strict --erasableSyntaxOnly --types node main.mts >&2
+    node main.mts
   '';
 }

@@ -5,5 +5,5 @@
     pkgs.idris2
     pkgs.zsh
   ];
-  run = "idris2 Expr.idr -o expr >/dev/null && build/exec/expr";
+  run = "idris2 Main.idr -o main >/dev/null && build/exec/main";
 }

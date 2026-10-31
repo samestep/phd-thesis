@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.sbcl ];
-  run = "sbcl --script expr.lisp";
+  run = "sbcl --script main.lisp";
 }

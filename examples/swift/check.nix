@@ -5,7 +5,7 @@
   supported = !pkgs.swiftPackages.swiftc.meta.broken;
   packages = [ pkgs.swift ];
   run = ''
-    swiftc expr.swift -o expr >&2
-    ./expr
+    swiftc main.swift -o main >&2
+    ./main
   '';
 }

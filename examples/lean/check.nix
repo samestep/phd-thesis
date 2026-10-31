@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.lean4 ];
-  run = "lean --run expr.lean";
+  run = "lean --run main.lean";
 }

@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.bash ];
-  run = "bash expr.sh";
+  run = "bash main.sh";
 }

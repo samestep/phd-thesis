@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.tcl ];
-  run = "tclsh expr.tcl";
+  run = "tclsh main.tcl";
 }

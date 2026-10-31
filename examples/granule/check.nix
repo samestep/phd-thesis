@@ -30,5 +30,5 @@ in
     granule
     pkgs.z3
   ];
-  run = "gr --no-info --no-print-return-value expr.gr";
+  run = "gr --no-info --no-print-return-value main.gr";
 }

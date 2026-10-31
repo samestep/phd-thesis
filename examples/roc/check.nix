@@ -67,7 +67,7 @@ in
   run = ''
     mkdir -p $HOME/.cache/roc/packages/${basicCli}
     brotli -dc ${inputs.roc-basic-cli} | tar -x -C $HOME/.cache/roc/packages/${basicCli}
-    roc build expr.roc >&2
-    ./expr
+    roc build main.roc >&2
+    ./main
   '';
 }

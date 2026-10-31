@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.python3 ];
-  run = "python3 expr.py";
+  run = "python3 main.py";
 }

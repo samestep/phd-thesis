@@ -72,38 +72,49 @@
           pkgs = import nixpkgs { inherit system; };
           mossPkg = moss.packages.${system}.default;
 
-          # Every example is a directory of source files,
-          # `examples/<language>/<mechanism>/<variant>`, where the variant is
-          # `concrete` (a fixed index type), `generic` (an abstract one) or
-          # `dynamic` (dispatch at run time); or `examples/<language>/tree`, the
-          # pointer-based tree that flattening starts from, which has no pool to
-          # pass. The nearest `check.nix` above it says which packages it needs
-          # and how to run it: usually the language's, and a mechanism's own
-          # where its toolchain differs. Whatever an example prints must match
-          # `examples/expected.txt`. A `check.nix` gets `pkgs`, this flake's
-          # `inputs` (for sources nixpkgs doesn't have), and `moss`.
-          subdirs =
-            dir: lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir dir));
+          # Every example is a directory of source files under
+          # `examples/<language>/<program>/`: `<mechanism>/<variant>` for a
+          # program written with one mechanism for passing its context in
+          # several variants (for `ast`: `concrete`, a fixed index type;
+          # `generic`, an abstract one; or `dynamic`, dispatch at run time),
+          # just `<mechanism>` for one with no variants, and `ast/tree` for the
+          # pointer-based tree that flattening starts from. A directory is an
+          # example if it holds any file but a `check.nix`. The nearest
+          # `check.nix` above an example says which packages it needs and how
+          # to run its `main` file: usually the language's, and a mechanism's
+          # own where its toolchain differs. Whatever an example prints must
+          # match `examples/<program>.txt`. A `check.nix` gets `pkgs`, this
+          # flake's `inputs` (for sources nixpkgs doesn't have), and `moss`.
           # Each example as the list of its path segments under `examples`.
-          examples = lib.concatMap (
-            language:
+          examples =
+            let
+              walk =
+                segments:
+                let
+                  entries = builtins.readDir (./examples + "/${lib.concatStringsSep "/" segments}");
+                  files = lib.attrNames (
+                    lib.filterAttrs (name: type: type != "directory" && name != "check.nix") entries
+                  );
+                  dirs = lib.attrNames (lib.filterAttrs (_: type: type == "directory") entries);
+                in
+                if files != [ ] then [ segments ] else lib.concatMap (dir: walk (segments ++ [ dir ])) dirs;
+            in
             lib.concatMap (
-              mechanism:
-              if mechanism == "tree" then
-                [
-                  [
+              language:
+              lib.concatMap
+                (
+                  program:
+                  walk [
                     language
-                    "tree"
+                    program
                   ]
-                ]
-              else
-                map (variant: [
-                  language
-                  mechanism
-                  variant
-                ]) (subdirs ./examples/${language}/${mechanism})
-            ) (subdirs ./examples/${language})
-          ) (subdirs ./examples);
+                )
+                (
+                  lib.attrNames (
+                    lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./examples/${language})
+                  )
+                )
+            ) (lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./examples)));
           example =
             segments:
             let
@@ -130,7 +141,7 @@
                   {
                     ${spec.run}
                   } > actual
-                  diff -u ${./examples/expected.txt} actual
+                  diff -u ${./examples + "/${builtins.elemAt segments 1}.txt"} actual
                   touch $out
                 ''
             );

@@ -1,5 +1,5 @@
 { moss, ... }:
 {
   packages = [ moss ];
-  run = "moss expr.moss";
+  run = "moss main.moss";
 }

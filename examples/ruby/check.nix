@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.ruby ];
-  run = "ruby expr.rb";
+  run = "ruby main.rb";
 }

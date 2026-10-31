@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.mlton ];
-  run = "mlton -output expr expr.sml && ./expr";
+  run = "mlton -output main main.sml && ./main";
 }

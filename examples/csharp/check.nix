@@ -9,6 +9,6 @@
     export DOTNET_CLI_HOME=$HOME NUGET_PACKAGES=$HOME/nuget NuGetAudit=false
     export CFFIXED_USER_HOME=$HOME
     mkdir -p "$HOME/Library/Application Support"
-    dotnet run expr.cs
+    dotnet run main.cs
   '';
 }

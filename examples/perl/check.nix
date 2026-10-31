@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.perl ];
-  run = "perl expr.pl";
+  run = "perl main.pl";
 }

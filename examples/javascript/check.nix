@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.nodejs ];
-  run = "node expr.mjs";
+  run = "node main.mjs";
 }

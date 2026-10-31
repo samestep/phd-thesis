@@ -1,5 +1,5 @@
 { pkgs, ... }:
 {
   packages = [ pkgs.rustc ];
-  run = "rustc -O expr.rs -o expr && ./expr";
+  run = "rustc -O main.rs -o main && ./main";
 }
