@@ -44,20 +44,12 @@ assume Std, Value {
   fn trace(v: Value);
 }
 
-functor Quiet: Std, Value -> trace {
-  bind trace = (v) => {};
-}
-
-functor Loud: Std, Arith -> trace {
-  bind trace = (v) => {
-    putchar(char::space);
-    putchar(char::space);
-    print_value(v);
-  };
-}
+# Tracing, as a mode: what `trace` does inside a traced subtree. Whoever
+# runs the interpreter says what that is.
+functor Trace: Std, Arith -> trace;
 
 # Written once, against the interfaces alone.
-assume Std, Ast, Arith, trace {
+assume Std, Ast, Arith, trace, Trace {
   fn interp(e: ExprRef): Value {
     let v = match e.data() {
       Binary { op, lhs, rhs } => {
@@ -72,7 +64,7 @@ assume Std, Ast, Arith, trace {
       },
       Literal n => value(n),
       Traced inner => {
-        bind Loud;
+        bind Trace;
         interp(inner)
       },
     };
@@ -170,6 +162,19 @@ functor Floating: Std -> Value, value, print_value {
 }
 # endregion
 
+# Two ways to trace: not at all, and by printing each value.
+functor Quiet: Std, Value -> trace {
+  bind trace = (v) => {};
+}
+
+functor Loud: Std, Arith -> trace {
+  bind trace = (v) => {
+    putchar(char::space);
+    putchar(char::space);
+    print_value(v);
+  };
+}
+
 assume Wasm, Wasi, Branch {
   # region: main
   fn main() {
@@ -178,6 +183,7 @@ assume Wasm, Wasi, Branch {
     bind ExprRef = Slot;
     bind ExprRef.data = Slot.node;
     bind add = triples_add;
+    bind Trace = Loud;
     # 50000 * 50000 / 100000 + traced((7 - 10) * 7 / 8)
     let e = bin(Add,
       bin(Div, bin(Mul, lit(50000), lit(50000)), lit(100000)),
