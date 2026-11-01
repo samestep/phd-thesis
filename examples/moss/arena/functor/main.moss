@@ -1,47 +1,14 @@
 import "wasi.moss" use WasiStd;
-import "wasistd.moss" use Branch, Chr, Numerics, Containers, WasiNumerics, WasiContainers,
-  heap_mark, heap_reset;
-import "wasm.moss" use Wasm, Memory, I32;
+import "wasistd.moss" use Branch, Numerics, Containers;
+import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
+import "../../arena.moss" use Arena, Arenas, ScratchArena;
 import "../../common.moss" use print_int;
 
 # For each start value, the Collatz trajectory down to 1 is built as a
 # temporary list in an arena, and only two numbers are kept from it: how
-# many steps it took, and the largest value on the way.
-#
-# Guaranteed: nothing made in the arena outlives the block that applied
-# `Arena`. Letting it out (as the block's value, assigned to an outer
-# variable, or inside a record) is a compile error. Not guaranteed:
-# applying `Arena` again inside such a block resets the arena under the
-# first application's data, and so does calling `heap_reset` by hand.
-
-# A second linear memory, for the arena to live in.
-unit Scratch;
-
-assume Wasm {
-  # Where `Scratch`'s allocator starts, read once before anything is
-  # allocated there.
-  val scratch_base: I32;
-  # Where the arena's allocator starts, after `Arena` resets it.
-  val fresh: I32;
-}
-
-# Applying `Arena` gives you a fresh arena: each `bind Arena;` resets
-# its memory, and makes a new `Memory` with new containers in it, so
-# nothing allocated there can leave the block that applied it.
-functor Arena: Wasm, Branch, scratch_base -> Memory, Containers, fresh;
-
-# The arena in `Scratch`, reset as it is applied.
-functor InScratch: Wasm, Branch, scratch_base -> Memory, Containers, fresh {
-  bind Memory = Scratch;
-  bind fresh = {
-    heap_reset(scratch_base);
-    scratch_base
-  };
-  bind WasiNumerics;
-  bind Char = Chr;
-  bind WasiContainers;
-}
+# many steps it took, and the largest value on the way. `Arena`, and
+# what it does and does not guarantee, is in `../../arena.moss`.
 
 assume Char, Numerics, Containers {
   type Summary { steps: Int, peak: Int };
@@ -70,7 +37,7 @@ assume Char, Numerics, Containers {
   }
 }
 
-assume Wasm, Wasi, Branch, scratch_base, Arena {
+assume Wasm, Wasi, Branch, Arenas {
   fn report() {
     bind WasiStd;
     let starts = int_list();
@@ -98,11 +65,7 @@ assume Wasm, Wasi, Branch, scratch_base, Arena {
 
 assume Wasm, Wasi, Branch {
   fn main() {
-    bind scratch_base = {
-      bind Memory = Scratch;
-      heap_mark()
-    };
-    bind Arena = InScratch;
+    bind ScratchArena;
     report();
   }
 }
