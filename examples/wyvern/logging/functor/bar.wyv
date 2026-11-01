@@ -1,0 +1,12 @@
+// To rebind the maximum level for `foo`, `bar` instantiates `foo` itself,
+// with a log it makes from the logger underneath, so it needs that too.
+module def bar(log: MaybeLog, force: ForceLog)
+
+import foo
+import maxLevelDebug
+
+def bar(): Unit
+    log.info(1)
+    log.debug(2)
+    foo(maxLevelDebug(force)).foo()
+    log.debug(4)

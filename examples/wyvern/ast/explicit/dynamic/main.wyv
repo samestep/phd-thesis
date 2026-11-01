@@ -1,0 +1,109 @@
+// Dynamic dispatch over the representation: the pool is an object of the
+// type `Ast`, and every function that touches an `Expr` takes it. With no
+// type member, `ExprRef` is fixed once for every representation, so a
+// reference from one pool can be passed to another.
+
+require stdout
+
+import wyvern.collections.ArrayList
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+type ExprRef
+    val index: Int
+
+def ref(i: Int): ExprRef = new
+    val index: Int = i
+
+datatype Expr
+    Binary(op: BinOp, lhs: ExprRef, rhs: ExprRef)
+    Literal(num: Int)
+
+resource type Ast
+    def add(expr: Expr): ExprRef
+    def get(expr: ExprRef): Expr
+
+def interp(pool: Ast, expr: ExprRef): Int = match pool.get(expr):
+    b: Binary =>
+        val l = interp(pool, b.lhs)
+        val r = interp(pool, b.rhs)
+        match b.op:
+            _: Add => l + r
+            _: Sub => l - r
+            _: Mul => l * r
+            _: Div => if (r == 0) { 0 } else { l / r }
+    n: Literal => n.num
+
+def lit(pool: Ast, n: Int): ExprRef = pool.add(Literal(n))
+def bin(pool: Ast, op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef = pool.add(Binary(op, lhs, rhs))
+
+// Operators are stored as codes: 0 is a literal, and the others 1 to 4.
+def code(op: BinOp): Int = match op:
+    _: Add => 1
+    _: Sub => 2
+    _: Mul => 3
+    _: Div => 4
+
+def binop(code: Int): BinOp
+    if (code == 1) { Add() } else { if (code == 2) { Sub() } else { if (code == 3) { Mul() } else { Div() } } }
+
+def node(op: Int, lhs: Int, rhs: Int): Expr
+    if (op == 0) { Literal(lhs) } else { Binary(binop(op), ref(lhs), ref(rhs)) }
+
+// Representation 1: a node is an index into parallel lists.
+def columns(): Ast = new
+    val ops = ArrayList.ArrayList[Int](16)
+    val lhs = ArrayList.ArrayList[Int](16)
+    val rhs = ArrayList.ArrayList[Int](16)
+
+    def add(expr: Expr): ExprRef
+        match expr:
+            b: Binary =>
+                this.ops.add(code(b.op))
+                this.lhs.add(b.lhs.index)
+                this.rhs.add(b.rhs.index)
+            n: Literal =>
+                this.ops.add(0)
+                this.lhs.add(n.num)
+                this.rhs.add(0)
+        ref(this.ops.size() - 1)
+
+    def get(expr: ExprRef): Expr
+        val i = expr.index
+        node(this.ops.get(i), this.lhs.get(i), this.rhs.get(i))
+
+// Representation 2: a node is an index into one list of triples.
+def triples(): Ast = new
+    val triples = ArrayList.ArrayList[Int](16)
+
+    def add(expr: Expr): ExprRef
+        match expr:
+            b: Binary =>
+                this.triples.add(code(b.op))
+                this.triples.add(b.lhs.index)
+                this.triples.add(b.rhs.index)
+            n: Literal =>
+                this.triples.add(0)
+                this.triples.add(n.num)
+                this.triples.add(0)
+        ref(this.triples.size() / 3 - 1)
+
+    def get(expr: ExprRef): Expr
+        val i = 3 * expr.index
+        node(this.triples.get(i), this.triples.get(i + 1), this.triples.get(i + 2))
+
+def print(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+val pool = columns()
+val e = bin(pool, Div(), bin(pool, Mul(), bin(pool, Sub(), lit(pool, 7), lit(pool, 10)), lit(pool, 7)), lit(pool, 2))
+print(interp(pool, e))
+val other = triples()
+val f = bin(other, Div(), bin(other, Add(), lit(other, 4), lit(other, 4)), bin(other, Sub(), lit(other, 4), lit(other, 4)))
+print(interp(other, f))
+print(interp(pool, e))

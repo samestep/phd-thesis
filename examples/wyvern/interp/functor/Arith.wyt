@@ -1,0 +1,10 @@
+// The arithmetic of the interpreted language: what a value is, what a
+// literal means, and how to print one.
+resource type Arith
+    type V
+    def value(n: Int): this.V
+    def print(v: this.V): Unit
+    def add(x: this.V, y: this.V): this.V
+    def sub(x: this.V, y: this.V): this.V
+    def mul(x: this.V, y: this.V): this.V
+    def div(x: this.V, y: this.V): this.V

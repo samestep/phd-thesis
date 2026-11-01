@@ -1,0 +1,21 @@
+// Wyvern has one floating-point type, `Float`, a Java `double`, so f32 is
+// simulated: `single.round(x)` rounds a double to the nearest f32, ties to
+// even, by adding and subtracting a constant big enough that the double's
+// own rounding happens at the f32's last place (neither underflow nor
+// overflow happens here). `binade(a, 1.0)` is the power of two at or below
+// `a`.
+module single
+
+def binade(a: Float, p: Float): Float
+    if (a >= p * 2.0)
+            binade(a, p * 2.0)
+        else
+            if (a < p) { binade(a, p / 2.0) } else { p }
+
+def round(x: Float): Float
+    if (x == 0.0)
+            x
+        else
+            val a = if (x < 0.0) { x.negate() } else { x }
+            val big = binade(a, 1.0) * 805306368.0
+            (x + big) - big

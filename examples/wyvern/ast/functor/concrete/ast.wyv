@@ -1,0 +1,17 @@
+module ast
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+type ExprRef
+    val index: Int
+
+def ref(i: Int): ExprRef = new
+    val index: Int = i
+
+datatype Expr
+    Binary(op: BinOp, lhs: ExprRef, rhs: ExprRef)
+    Literal(num: Int)

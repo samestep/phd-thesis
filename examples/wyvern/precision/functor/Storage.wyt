@@ -1,0 +1,6 @@
+// How a `C` is stored, as an `S`.
+type Storage
+    type C
+    type S
+    def narrow(x: this.C): this.S
+    def widen(x: this.S): this.C

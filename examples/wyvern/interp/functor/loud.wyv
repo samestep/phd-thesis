@@ -1,0 +1,6 @@
+// A tracer that prints each value, indented.
+module def loud(stdout: Stdout, arith: Arith)
+
+def apply(v: arith.V): Unit
+    stdout.print("  ")
+    arith.print(v)

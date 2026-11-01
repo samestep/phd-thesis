@@ -1,0 +1,28 @@
+// Functors (`module def`s): `dualField(k)` makes a field of duals from any
+// field `k`, as a module of type `Duals[k.F]`, whose own type `F` is
+// abstract, so each application is a new type; `poly(k)` is the function to
+// differentiate, written once against a field; and `calculus` takes the
+// field it works in, and the fields of duals and of duals of duals over it,
+// as module parameters whose types depend on the parameters before them.
+// The main script builds that tower and wires it in. (`calculus` can't
+// build it itself: Wyvern's checker loses track of `dualField(dr)`'s types
+// when `dr` is a `val` in a function or a module rather than a parameter.)
+// `dr.F` and `ddr.F` are different types, so `nested` has to lift the outer
+// variable into the inner differentiation (`ddr.still(x)`): adding it as it
+// is (`ddr.add(x, ddr.variable(y0))`) is a type error. The operations are
+// methods of the field, not of its values, whose type is abstract, so `f`
+// writes each as a call on its field, constants included
+// (`k.constant(2.0)`). Only the main script can `require` `stdout`.
+
+require stdout
+
+import f64
+import dualField
+import calculus
+
+val dk = dualField(f64)
+val ddk = dualField(dk)
+val c = calculus(stdout, f64, dk, ddk)
+c.derivatives(2.0)
+c.newton(2.0, 4)
+c.show(c.nested(1.0))

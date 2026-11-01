@@ -1,0 +1,10 @@
+// Compute in f64, store in f32 (but a stored f32 is still a double).
+module demoted
+
+import single
+
+type C = Float
+type S = Float
+
+def narrow(x: Float): Float = single.round(x)
+def widen(x: Float): Float = x

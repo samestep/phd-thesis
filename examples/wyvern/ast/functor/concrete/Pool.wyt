@@ -1,0 +1,5 @@
+import ast
+import wyvern.collections.ArrayList
+
+// A module parameter's type has to be named by a type file like this one.
+type Pool = ArrayList.ArrayList[ast.Expr]

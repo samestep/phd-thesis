@@ -1,0 +1,7 @@
+module def baz(force: ForceLog)
+
+import bar
+import maxLevelInfo
+
+def baz(): Unit
+    bar(maxLevelInfo(force), force).bar()

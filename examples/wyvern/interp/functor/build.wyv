@@ -1,0 +1,7 @@
+module def build(pool: Pool)
+
+import ast
+
+def lit(n: Int): pool.R = pool.add(ast.Literal[pool.R](n))
+def bin(op: ast.BinOp, lhs: pool.R, rhs: pool.R): pool.R = pool.add(ast.Binary[pool.R](op, lhs, rhs))
+def traced(inner: pool.R): pool.R = pool.add(ast.Traced[pool.R](inner))

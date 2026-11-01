@@ -1,0 +1,9 @@
+// The arithmetic and the constants, in the type `C`.
+type Compute
+    type C
+    def zero(): this.C
+    def tenth(): this.C
+    def thousand(): this.C
+    def add(x: this.C, y: this.C): this.C
+    def mul(x: this.C, y: this.C): this.C
+    def round(x: this.C): Int

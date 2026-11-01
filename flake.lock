@@ -231,7 +231,8 @@
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",
         "roc-macos-arm64": "roc-macos-arm64",
-        "virgil": "virgil"
+        "virgil": "virgil",
+        "wyvern": "wyvern"
       }
     },
     "rust-overlay": {
@@ -269,6 +270,23 @@
         "owner": "titzer",
         "repo": "virgil",
         "rev": "d83efd1b0076e292efca1ccf4830e2f6faf6ade5",
+        "type": "github"
+      }
+    },
+    "wyvern": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792574056,
+        "narHash": "sha256-wPgkHmmWpDa5KfJVm+b/4VcnkzAtjB9ilSjEwNDef9Y=",
+        "owner": "wyvernlang",
+        "repo": "wyvern",
+        "rev": "95c92ec72737c4a4b698ba5f66a728eb14434921",
+        "type": "github"
+      },
+      "original": {
+        "owner": "wyvernlang",
+        "repo": "wyvern",
+        "rev": "95c92ec72737c4a4b698ba5f66a728eb14434921",
         "type": "github"
       }
     }

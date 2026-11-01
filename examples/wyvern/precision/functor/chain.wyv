@@ -1,0 +1,29 @@
+module def chain(stdout: Stdout, c: Compute, s: Storage[c.C])
+
+import wyvern.collections.ArrayList
+
+type ArrayList = ArrayList.ArrayList
+
+def fill(n: Int): ArrayList[s.S]
+    val xs = ArrayList.ArrayList[s.S](n)
+    def loop(i: Int): Unit
+        if (i < n)
+                xs.add(s.narrow(c.tenth()))
+                loop(i + 1)
+            else
+                unit
+    loop(0)
+    xs
+
+def accumulate(xs: ArrayList[s.S], start: Int, end: Int): c.C
+    def loop(i: Int, sum: c.C): c.C
+        if (i < end) { loop(i + 1, c.add(sum, s.widen(xs.get(i)))) } else { sum }
+    loop(start, c.zero())
+
+def total(xs: ArrayList[s.S], n: Int): c.C = accumulate(xs, 0, n)
+
+def scaled(xs: ArrayList[s.S], n: Int): Int = c.round(c.mul(total(xs, n), c.thousand()))
+
+def report(n: Int): Unit
+    stdout.printInt(scaled(fill(n), n))
+    stdout.println()

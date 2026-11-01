@@ -1,0 +1,175 @@
+// Two abstract types, the pool's index type and the value type, as type
+// members of an object for the pool and one for the arithmetic, and the
+// tracer a function of the value. Every function that builds or reads an
+// `Expr` takes the pool, and `interp` and `report` take all three, with the
+// other types depending on them (`pool.R`, `arith.V`), so no function needs
+// a type parameter. A `Traced` node passes `loud(arith)` in place of the
+// tracer it was given. The arithmetic and the tracer are an object and a
+// function chosen at run time, so each operation and trace is a call
+// through them.
+
+require stdout
+
+import wyvern.Float
+import wyvern.collections.ArrayList
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+datatype Expr[R]
+    Binary(op: BinOp, lhs: R, rhs: R)
+    Literal(n: Int)
+    // Evaluate the inner expression with tracing on.
+    Traced(inner: R)
+
+// The pool: an index type, how to read a node through one, and how to make
+// one.
+resource type Pool
+    type R
+    def node(e: this.R): Expr[this.R]
+    def add(expr: Expr[this.R]): this.R
+
+// The arithmetic of the interpreted language: what a value is, what a
+// literal means, and how to print one.
+resource type Arith
+    type V
+    def value(n: Int): this.V
+    def print(v: this.V): Unit
+    def add(x: this.V, y: this.V): this.V
+    def sub(x: this.V, y: this.V): this.V
+    def mul(x: this.V, y: this.V): this.V
+    def div(x: this.V, y: this.V): this.V
+
+// Tracers, called with every intermediate value. A function is an object
+// with an `apply` method, which is how to write one whose body is more than
+// an expression.
+def quiet(arith: Arith): arith.V -> Unit = v => unit
+
+def loud(arith: Arith): arith.V -> Unit = new
+    def apply(v: arith.V): Unit
+        stdout.print("  ")
+        arith.print(v)
+
+// Written once, against the types alone.
+def interp(pool: Pool, arith: Arith, trace: arith.V -> Unit, e: pool.R): arith.V
+    val v: arith.V = match pool.node(e):
+        b: Binary =>
+            val l = interp(pool, arith, trace, b.lhs)
+            val r = interp(pool, arith, trace, b.rhs)
+            match b.op:
+                _: Add => arith.add(l, r)
+                _: Sub => arith.sub(l, r)
+                _: Mul => arith.mul(l, r)
+                _: Div => arith.div(l, r)
+        n: Literal => arith.value(n.n)
+        t: Traced => interp(pool, arith, loud(arith), t.inner)
+    trace(v)
+    v
+
+def report(pool: Pool, arith: Arith, trace: arith.V -> Unit, e: pool.R): Unit
+    arith.print(interp(pool, arith, trace, e))
+
+def lit(pool: Pool, n: Int): pool.R = pool.add(Literal[pool.R](n))
+def bin(pool: Pool, op: BinOp, lhs: pool.R, rhs: pool.R): pool.R = pool.add(Binary[pool.R](op, lhs, rhs))
+def traced(pool: Pool, inner: pool.R): pool.R = pool.add(Traced[pool.R](inner))
+
+// A pool: a node is an index into one list of triples.
+type Slot
+    val index: Int
+
+def slot(i: Int): Slot = new
+    val index: Int = i
+
+def code(op: BinOp): Int = match op:
+    _: Add => 1
+    _: Sub => 2
+    _: Mul => 3
+    _: Div => 4
+
+def binop(code: Int): BinOp
+    if (code == 1) { Add() } else { if (code == 2) { Sub() } else { if (code == 3) { Mul() } else { Div() } } }
+
+def triples(): Pool = new
+    type R = Slot
+    val triples = ArrayList.ArrayList[Int](16)
+
+    def node(e: Slot): Expr[Slot]
+        val i = 3 * e.index
+        val code = this.triples.get(i)
+        val a = this.triples.get(i + 1)
+        val b = this.triples.get(i + 2)
+        if (code == 0)
+                Literal[Slot](a)
+            else
+                if (code == 5) { Traced[Slot](slot(a)) } else { Binary[Slot](binop(code), slot(a), slot(b)) }
+
+    def add(expr: Expr[Slot]): Slot
+        val i = this.triples.size() / 3
+        match expr:
+            b: Binary =>
+                this.triples.add(code(b.op))
+                this.triples.add(b.lhs.index)
+                this.triples.add(b.rhs.index)
+            n: Literal =>
+                this.triples.add(0)
+                this.triples.add(n.n)
+                this.triples.add(0)
+            t: Traced =>
+                this.triples.add(5)
+                this.triples.add(t.inner.index)
+                this.triples.add(0)
+        slot(i)
+
+def println(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+// `Int` is arbitrary-precision, so i32 arithmetic wraps or saturates by
+// hand.
+def wrap(n: Int): Int
+    val m = (n + 2147483648) % 4294967296
+    (if (m < 0) { m + 4294967296 } else { m }) - 2147483648
+
+def saturate(n: Int): Int
+    if (n > 2147483647) { 2147483647 } else { if (n < 0 - 2147483648) { 0 - 2147483648 } else { n } }
+
+// Three meanings for the interpreted language's arithmetic.
+val wrapping: Arith[Int] = new
+    type V = Int
+    def value(n: Int): Int = n
+    def print(v: Int): Unit = println(v)
+    def add(x: Int, y: Int): Int = wrap(x + y)
+    def sub(x: Int, y: Int): Int = wrap(x - y)
+    def mul(x: Int, y: Int): Int = wrap(x * y)
+    def div(x: Int, y: Int): Int = wrap(x / y)
+
+val saturating: Arith[Int] = new
+    type V = Int
+    def value(n: Int): Int = n
+    def print(v: Int): Unit = println(v)
+    def add(x: Int, y: Int): Int = saturate(x + y)
+    def sub(x: Int, y: Int): Int = saturate(x - y)
+    def mul(x: Int, y: Int): Int = saturate(x * y)
+    def div(x: Int, y: Int): Int = saturate(x / y)
+
+val floating: Arith[Float] = new
+    type V = Float
+    def value(n: Int): Float = Float.ofInt(n)
+    // `floor` is the only way from a `Float` to an `Int`.
+    def print(v: Float): Unit = println((v + 0.5).floor())
+    def add(x: Float, y: Float): Float = x + y
+    def sub(x: Float, y: Float): Float = x - y
+    def mul(x: Float, y: Float): Float = x * y
+    def div(x: Float, y: Float): Float = x / y
+
+val pool = triples()
+// 50000 * 50000 / 100000 + traced((7 - 10) * 7 / 8)
+val e = bin(pool, Add(),
+    bin(pool, Div(), bin(pool, Mul(), lit(pool, 50000), lit(pool, 50000)), lit(pool, 100000)),
+    traced(pool, bin(pool, Div(), bin(pool, Mul(), bin(pool, Sub(), lit(pool, 7), lit(pool, 10)), lit(pool, 7)), lit(pool, 8))))
+report(pool, wrapping, quiet(wrapping), e)
+report(pool, saturating, quiet(saturating), e)
+report(pool, floating, quiet(floating), e)

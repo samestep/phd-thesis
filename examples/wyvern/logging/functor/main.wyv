@@ -1,0 +1,15 @@
+// Functors (`module def`s): each module takes the context it uses as module
+// parameters, which are wired in when it's instantiated, and each kind of
+// log is a functor from the logger underneath it. Nothing is passed
+// implicitly: a module that calls another instantiates it, so rebinding the
+// maximum level for a scope is instantiating the callee again, with a new
+// log over the same logger, and a module that does that needs the logger as
+// well as the log. Only the main script can `require` the `stdout`
+// capability, so the logger that prints is instantiated here.
+
+require stdout
+
+import stdoutLog
+import baz
+
+baz(stdoutLog(stdout)).baz()

@@ -1,0 +1,62 @@
+// Each piece of context is an object, passed to every function that logs,
+// as is the logger underneath it, so a function that needs both takes both.
+// Rebinding the maximum level for a scope is a new object over the same
+// logger; but the level is an object chosen at run time, so a disabled
+// level is a call to a method that does nothing. The logger that prints
+// needs the `stdout` capability, which only the main script can `require`,
+// so it's made there and passed down.
+
+require stdout
+
+resource type MaybeLog
+    def error(message: Int): Unit
+    def warn(message: Int): Unit
+    def info(message: Int): Unit
+    def debug(message: Int): Unit
+    def trace(message: Int): Unit
+
+resource type ForceLog
+    def forceError(message: Int): Unit
+    def forceWarn(message: Int): Unit
+    def forceInfo(message: Int): Unit
+    def forceDebug(message: Int): Unit
+    def forceTrace(message: Int): Unit
+
+def maxLevelInfo(log: ForceLog): MaybeLog = new
+    def error(message: Int): Unit = log.forceError(message)
+    def warn(message: Int): Unit = log.forceWarn(message)
+    def info(message: Int): Unit = log.forceInfo(message)
+    def debug(message: Int): Unit = unit
+    def trace(message: Int): Unit = unit
+
+def maxLevelDebug(log: ForceLog): MaybeLog = new
+    def error(message: Int): Unit = log.forceError(message)
+    def warn(message: Int): Unit = log.forceWarn(message)
+    def info(message: Int): Unit = log.forceInfo(message)
+    def debug(message: Int): Unit = log.forceDebug(message)
+    def trace(message: Int): Unit = unit
+
+def print(message: Int): Unit
+    stdout.printInt(message)
+    stdout.println()
+
+val stdoutLog: ForceLog = new
+    def forceError(message: Int): Unit = print(message)
+    def forceWarn(message: Int): Unit = print(message)
+    def forceInfo(message: Int): Unit = print(message)
+    def forceDebug(message: Int): Unit = print(message)
+    def forceTrace(message: Int): Unit = print(message)
+
+def foo(log: MaybeLog): Unit
+    log.debug(3)
+
+def bar(log: MaybeLog, force: ForceLog): Unit
+    log.info(1)
+    log.debug(2)
+    foo(maxLevelDebug(force))
+    log.debug(4)
+
+def baz(force: ForceLog): Unit
+    bar(maxLevelInfo(force), force)
+
+baz(stdoutLog)

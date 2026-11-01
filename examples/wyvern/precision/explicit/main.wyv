@@ -1,0 +1,120 @@
+// Two abstract types, one per choice, and an object for each: the
+// arithmetic and the constants come with a `Compute` object, whose type
+// member `C` is the type computed in, and the conversions with a `Storage`
+// object, whose `S` is the type stored, and every function in the chain
+// takes both objects. The other types depend on them: `Storage[c.C]` is a
+// storage that converts from and to the `Compute`'s type, and the list is
+// an `ArrayList[s.S]`, so no function needs a type parameter. But the
+// operations are calls on the objects, chosen at run time.
+
+require stdout
+
+import wyvern.Float
+import wyvern.collections.ArrayList
+
+type ArrayList = ArrayList.ArrayList
+
+// Wyvern has one floating-point type, `Float`, a Java `double`, so f32 is
+// simulated: `single(x)` rounds a double to the nearest f32, ties to even,
+// by adding and subtracting a constant big enough that the double's own
+// rounding happens at the f32's last place (neither underflow nor overflow
+// happens here). `binade(a, 1.0)` is the power of two at or below `a`.
+def binade(a: Float, p: Float): Float
+    if (a >= p * 2.0)
+            binade(a, p * 2.0)
+        else
+            if (a < p) { binade(a, p / 2.0) } else { p }
+
+def single(x: Float): Float
+    if (x == 0.0)
+            x
+        else
+            val a = if (x < 0.0) { x.negate() } else { x }
+            val big = binade(a, 1.0) * 805306368.0
+            (x + big) - big
+
+type Compute
+    type C
+    def zero(): this.C
+    def tenth(): this.C
+    def thousand(): this.C
+    def add(x: this.C, y: this.C): this.C
+    def mul(x: this.C, y: this.C): this.C
+    def round(x: this.C): Int
+
+type Storage
+    type C
+    type S
+    def narrow(x: this.C): this.S
+    def widen(x: this.S): this.C
+
+// `floor` is the only way from a `Float` to an `Int`.
+def round(x: Float): Int = (x + 0.5).floor()
+
+// A float literal is read as a Java `float`, so `0.1` is the f32 one.
+val tenth: Float = Float.from("0.1")
+
+val f64: Compute[Float] = new
+    type C = Float
+    def zero(): Float = 0.0
+    def tenth(): Float = tenth
+    def thousand(): Float = 1000.0
+    def add(x: Float, y: Float): Float = x + y
+    def mul(x: Float, y: Float): Float = x * y
+    def round(x: Float): Int = round(x)
+
+val tenthSingle: Float = single(tenth)
+
+val f32: Compute[Float] = new
+    type C = Float
+    def zero(): Float = 0.0
+    def tenth(): Float = tenthSingle
+    def thousand(): Float = 1000.0
+    def add(x: Float, y: Float): Float = single(x + y)
+    def mul(x: Float, y: Float): Float = single(x * y)
+    def round(x: Float): Int = round(x)
+
+def same[T](): Storage[T, T] = new
+    type C = T
+    type S = T
+    def narrow(x: T): T = x
+    def widen(x: T): T = x
+
+val demoted: Storage[Float, Float] = new
+    type C = Float
+    type S = Float
+    def narrow(x: Float): Float = single(x)
+    def widen(x: Float): Float = x
+
+def fill(c: Compute, s: Storage[c.C], n: Int): ArrayList[s.S]
+    val xs = ArrayList.ArrayList[s.S](n)
+    def loop(i: Int): Unit
+        if (i < n)
+                xs.add(s.narrow(c.tenth()))
+                loop(i + 1)
+            else
+                unit
+    loop(0)
+    xs
+
+def accumulate(c: Compute, s: Storage[c.C], xs: ArrayList[s.S], start: Int, end: Int): c.C
+    def loop(i: Int, sum: c.C): c.C
+        if (i < end) { loop(i + 1, c.add(sum, s.widen(xs.get(i)))) } else { sum }
+    loop(start, c.zero())
+
+def total(c: Compute, s: Storage[c.C], xs: ArrayList[s.S], n: Int): c.C
+    accumulate(c, s, xs, 0, n)
+
+def scaled(c: Compute, s: Storage[c.C], xs: ArrayList[s.S], n: Int): Int
+    c.round(c.mul(total(c, s, xs, n), c.thousand()))
+
+def report(c: Compute, s: Storage[c.C], n: Int): Unit
+    stdout.printInt(scaled(c, s, fill(c, s, n), n))
+    stdout.println()
+
+// Compute in f64, store in f64.
+report(f64, same[Float](), 1000000)
+// Compute in f64, store in f32 (but a stored f32 is still a double).
+report(f64, demoted, 1000000)
+// Compute in f32, store in f32.
+report(f32, same[Float](), 1000000)

@@ -1,0 +1,16 @@
+// Saturating i32 arithmetic, by hand.
+module def saturating(stdout: Stdout): Arith
+
+type V = Int
+
+def saturate(n: Int): Int
+    if (n > 2147483647) { 2147483647 } else { if (n < 0 - 2147483648) { 0 - 2147483648 } else { n } }
+
+def value(n: Int): Int = n
+def print(v: Int): Unit
+    stdout.printInt(v)
+    stdout.println()
+def add(x: Int, y: Int): Int = saturate(x + y)
+def sub(x: Int, y: Int): Int = saturate(x - y)
+def mul(x: Int, y: Int): Int = saturate(x * y)
+def div(x: Int, y: Int): Int = saturate(x / y)

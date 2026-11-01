@@ -1,0 +1,25 @@
+module ast
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+datatype Expr[R]
+    Binary(op: BinOp, lhs: R, rhs: R)
+    Literal(num: Int)
+
+// Operators are stored as codes: 0 is a literal, and the others 1 to 4.
+def code(op: BinOp): Int = match op:
+    _: Add => 1
+    _: Sub => 2
+    _: Mul => 3
+    _: Div => 4
+
+def node[R](op: Int, lhs: Int, rhs: Int, ref: Int -> R): Expr[R]
+    if (op == 0)
+            Literal[R](lhs)
+        else
+            val binop: BinOp = if (op == 1) { Add() } else { if (op == 2) { Sub() } else { if (op == 3) { Mul() } else { Div() } } }
+            Binary[R](binop, ref(lhs), ref(rhs))

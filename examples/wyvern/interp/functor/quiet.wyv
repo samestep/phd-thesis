@@ -1,0 +1,5 @@
+// A tracer that does nothing. A function is an object with an `apply`
+// method, so an instance of this module is one.
+module def quiet(arith: Arith)
+
+def apply(v: arith.V): Unit = unit

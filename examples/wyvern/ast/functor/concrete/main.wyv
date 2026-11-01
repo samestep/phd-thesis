@@ -1,0 +1,20 @@
+// A functor (`module def`): the module `interp` takes the pool as a module
+// parameter, and is instantiated once per pool, which gives an object with
+// the pool fixed. Instances are ordinary values, so each pool's is named.
+
+require stdout
+
+import wyvern.collections.ArrayList
+import ast
+import interp
+
+def print(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+val a = interp(ArrayList.ArrayList[ast.Expr](16))
+val e = a.bin(ast.Div(), a.bin(ast.Mul(), a.bin(ast.Sub(), a.lit(7), a.lit(10)), a.lit(7)), a.lit(2))
+print(a.interp(e))
+val b = interp(ArrayList.ArrayList[ast.Expr](16))
+print(b.interp(b.bin(ast.Div(), b.bin(ast.Add(), b.lit(4), b.lit(4)), b.bin(ast.Sub(), b.lit(4), b.lit(4)))))
+print(a.interp(e))

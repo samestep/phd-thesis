@@ -1,0 +1,39 @@
+// The tree Sampson starts from: a datatype whose cases hold their children
+// directly, so nothing needs a pool, but every node is its own heap object.
+// `Int` is an arbitrary-precision integer.
+
+require stdout
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+datatype Expr
+    Binary(op: BinOp, lhs: Expr, rhs: Expr)
+    Literal(num: Int)
+
+def interp(expr: Expr): Int = match expr:
+    b: Binary =>
+        val l = interp(b.lhs)
+        val r = interp(b.rhs)
+        match b.op:
+            _: Add => l + r
+            _: Sub => l - r
+            _: Mul => l * r
+            _: Div => if (r == 0) { 0 } else { l / r }
+    n: Literal => n.num
+
+def lit(n: Int): Expr = Literal(n)
+def bin(op: BinOp, lhs: Expr, rhs: Expr): Expr = Binary(op, lhs, rhs)
+
+def print(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+val e = bin(Div(), bin(Mul(), bin(Sub(), lit(7), lit(10)), lit(7)), lit(2))
+print(interp(e))
+val f = bin(Div(), bin(Add(), lit(4), lit(4)), bin(Sub(), lit(4), lit(4)))
+print(interp(f))
+print(interp(e))

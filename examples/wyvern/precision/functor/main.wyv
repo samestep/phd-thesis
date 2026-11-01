@@ -1,0 +1,23 @@
+// A functor (`module def`): the chain of functions is one module, `chain`,
+// whose parameters are the arithmetic, a module `c` with a type member `C`
+// for the type computed in, and the storage, whose type `Storage[c.C]`
+// depends on the first parameter, so that they agree on `C`; inside, every
+// function uses them without taking them. `stdout` is a parameter too: only
+// the main script can `require` it. The main script instantiates `chain`
+// once per pair of choices. But the operations are calls on the modules,
+// which are objects chosen at run time.
+
+require stdout
+
+import chain
+import f64
+import f32
+import same
+import demoted
+
+// Compute in f64, store in f64.
+chain(stdout, f64, same(f64)).report(1000000)
+// Compute in f64, store in f32.
+chain(stdout, f64, demoted).report(1000000)
+// Compute in f32, store in f32.
+chain(stdout, f32, same(f32)).report(1000000)

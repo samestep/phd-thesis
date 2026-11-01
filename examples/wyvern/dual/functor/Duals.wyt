@@ -1,0 +1,13 @@
+// A field of dual numbers over a field of `B`s: its own `F` is abstract.
+resource type Duals
+    type B
+    type F
+    def constant(n: Float): this.F
+    def add(x: this.F, y: this.F): this.F
+    def sub(x: this.F, y: this.F): this.F
+    def mul(x: this.F, y: this.F): this.F
+    def div(x: this.F, y: this.F): this.F
+    def variable(x: this.B): this.F
+    def still(x: this.B): this.F
+    def v(x: this.F): this.B
+    def d(x: this.F): this.B

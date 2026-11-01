@@ -1,0 +1,23 @@
+module def interp(pool: Pool)
+
+import ast
+
+def add(expr: ast.Expr): ast.ExprRef
+    pool.add(expr)
+    ast.ref(pool.size() - 1)
+
+def get(expr: ast.ExprRef): ast.Expr = pool.get(expr.index)
+
+def interp(expr: ast.ExprRef): Int = match get(expr):
+    b: ast.Binary =>
+        val l = interp(b.lhs)
+        val r = interp(b.rhs)
+        match b.op:
+            _: ast.Add => l + r
+            _: ast.Sub => l - r
+            _: ast.Mul => l * r
+            _: ast.Div => if (r == 0) { 0 } else { l / r }
+    n: ast.Literal => n.num
+
+def lit(n: Int): ast.ExprRef = add(ast.Literal(n))
+def bin(op: ast.BinOp, lhs: ast.ExprRef, rhs: ast.ExprRef): ast.ExprRef = add(ast.Binary(op, lhs, rhs))

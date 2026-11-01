@@ -1,0 +1,11 @@
+module f64
+
+type F = Float
+
+def constant(n: Float): Float = n
+def add(x: Float, y: Float): Float = x + y
+def sub(x: Float, y: Float): Float = x - y
+def mul(x: Float, y: Float): Float = x * y
+def div(x: Float, y: Float): Float = x / y
+// `floor` is the only way from a `Float` to an `Int`.
+def round(x: Float): Int = (x + 0.5).floor()

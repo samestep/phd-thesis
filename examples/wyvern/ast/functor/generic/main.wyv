@@ -1,0 +1,26 @@
+// A functor over the representation: `interp` takes a module of type
+// `Ast`, whose index type is abstract, and each pool is a module made by
+// a generative functor, `columns` or `triples`. In `interp`, the index type
+// is `pool.R`, a type member of the parameter; outside, an instance's types
+// mention its pool's, so a reference from one pool can't be passed to
+// another.
+
+require stdout
+
+import ast
+import interp
+import columns
+import triples
+
+def print(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+val c = columns()
+val a = interp(c)
+val e = a.bin(ast.Div(), a.bin(ast.Mul(), a.bin(ast.Sub(), a.lit(7), a.lit(10)), a.lit(7)), a.lit(2))
+print(a.interp(e))
+val t = triples()
+val b = interp(t)
+print(b.interp(b.bin(ast.Div(), b.bin(ast.Add(), b.lit(4), b.lit(4)), b.bin(ast.Sub(), b.lit(4), b.lit(4)))))
+print(a.interp(e))

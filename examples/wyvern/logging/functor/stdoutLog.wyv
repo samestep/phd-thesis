@@ -1,0 +1,11 @@
+module def stdoutLog(stdout: Stdout): ForceLog
+
+def print(message: Int): Unit
+    stdout.printInt(message)
+    stdout.println()
+
+def forceError(message: Int): Unit = print(message)
+def forceWarn(message: Int): Unit = print(message)
+def forceInfo(message: Int): Unit = print(message)
+def forceDebug(message: Int): Unit = print(message)
+def forceTrace(message: Int): Unit = print(message)

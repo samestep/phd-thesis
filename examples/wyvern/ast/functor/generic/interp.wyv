@@ -1,0 +1,17 @@
+module def interp(pool: Ast)
+
+import ast
+
+def interp(expr: pool.R): Int = match pool.get(expr):
+    b: ast.Binary =>
+        val l = interp(b.lhs)
+        val r = interp(b.rhs)
+        match b.op:
+            _: ast.Add => l + r
+            _: ast.Sub => l - r
+            _: ast.Mul => l * r
+            _: ast.Div => if (r == 0) { 0 } else { l / r }
+    n: ast.Literal => n.num
+
+def lit(n: Int): pool.R = pool.add(ast.Literal[pool.R](n))
+def bin(op: ast.BinOp, lhs: pool.R, rhs: pool.R): pool.R = pool.add(ast.Binary[pool.R](op, lhs, rhs))

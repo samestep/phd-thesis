@@ -1,0 +1,32 @@
+// Functors (`module def`s): the pool, the arithmetic and the tracers are
+// modules, and `interp` takes them as module parameters, with the other
+// types depending on them (`pool.R`, `arith.V`); the main script wires them
+// together, one instance of `interp` per arithmetic. Only the main script
+// can `require` the `stdout` capability, so it passes it to each module
+// that prints.
+
+require stdout
+
+import ast
+import build
+import interp
+import triples
+import wrapping
+import saturating
+import floating
+import quiet
+import loud
+
+val pool = triples()
+val b = build(pool)
+// 50000 * 50000 / 100000 + traced((7 - 10) * 7 / 8)
+val e = b.bin(ast.Add(),
+    b.bin(ast.Div(), b.bin(ast.Mul(), b.lit(50000), b.lit(50000)), b.lit(100000)),
+    b.traced(b.bin(ast.Div(), b.bin(ast.Mul(), b.bin(ast.Sub(), b.lit(7), b.lit(10)), b.lit(7)), b.lit(8))))
+
+val w = wrapping(stdout)
+interp(pool, w, quiet(w), loud(stdout, w)).report(e)
+val s = saturating(stdout)
+interp(pool, s, quiet(s), loud(stdout, s)).report(e)
+val f = floating(stdout)
+interp(pool, f, quiet(f), loud(stdout, f)).report(e)

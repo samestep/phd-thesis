@@ -1,0 +1,22 @@
+module ast
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+datatype Expr[R]
+    Binary(op: BinOp, lhs: R, rhs: R)
+    Literal(n: Int)
+    // Evaluate the inner expression with tracing on.
+    Traced(inner: R)
+
+def code(op: BinOp): Int = match op:
+    _: Add => 1
+    _: Sub => 2
+    _: Mul => 3
+    _: Div => 4
+
+def binop(code: Int): BinOp
+    if (code == 1) { Add() } else { if (code == 2) { Sub() } else { if (code == 3) { Mul() } else { Div() } } }

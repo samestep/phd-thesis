@@ -1,0 +1,18 @@
+// Wrapping i32 arithmetic. `Int` is arbitrary-precision, so it wraps by
+// hand.
+module def wrapping(stdout: Stdout): Arith
+
+type V = Int
+
+def wrap(n: Int): Int
+    val m = (n + 2147483648) % 4294967296
+    (if (m < 0) { m + 4294967296 } else { m }) - 2147483648
+
+def value(n: Int): Int = n
+def print(v: Int): Unit
+    stdout.printInt(v)
+    stdout.println()
+def add(x: Int, y: Int): Int = wrap(x + y)
+def sub(x: Int, y: Int): Int = wrap(x - y)
+def mul(x: Int, y: Int): Int = wrap(x * y)
+def div(x: Int, y: Int): Int = wrap(x / y)

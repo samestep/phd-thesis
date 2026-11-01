@@ -1,0 +1,31 @@
+module def calculus(stdout: Stdout, r: Real, dr: Duals[r.F], ddr: Duals[dr.F])
+
+import poly
+
+def show(x: r.F): Unit
+    stdout.printInt(r.round(r.mul(x, r.constant(1000000.0))))
+    stdout.println()
+
+def derivatives(x: r.F): Unit
+    show(poly(r).f(x))
+    show(dr.d(poly(dr).f(dr.variable(x))))
+    show(dr.d(ddr.d(poly(ddr).f(ddr.variable(dr.variable(x))))))
+
+def newton(x0: r.F, steps: Int): Unit
+    val p = poly(dr)
+    def loop(x: r.F, i: Int): Unit
+        if (i < steps)
+                val y = p.f(dr.variable(x))
+                val next = r.sub(x, r.div(dr.v(y), dr.d(y)))
+                show(next)
+                loop(next, i + 1)
+            else
+                unit
+    loop(x0, 0)
+
+// d/dx (x * d/dy (x + y)) at x = 1, y = 1.
+def nested(at: r.F): r.F
+    val x = dr.variable(at)
+    val y0 = dr.constant(1.0)
+    val inner = ddr.d(ddr.add(ddr.still(x), ddr.variable(y0)))
+    dr.d(dr.mul(x, inner))

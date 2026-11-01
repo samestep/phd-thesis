@@ -1,0 +1,64 @@
+// The pool has to be passed to everything that touches an `Expr`: here they
+// are methods of the pool, so the pool is their receiver.
+
+require stdout
+
+import wyvern.collections.ArrayList
+
+datatype BinOp
+    Add
+    Sub
+    Mul
+    Div
+
+type ExprRef
+    val index: Int
+
+def ref(i: Int): ExprRef = new
+    val index: Int = i
+
+datatype Expr
+    Binary(op: BinOp, lhs: ExprRef, rhs: ExprRef)
+    Literal(num: Int)
+
+resource type ExprPool
+    def add(expr: Expr): ExprRef
+    def get(expr: ExprRef): Expr
+    def interp(expr: ExprRef): Int
+    def lit(n: Int): ExprRef
+    def bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef
+
+def exprPool(): ExprPool = new
+    val exprs = ArrayList.ArrayList[Expr](16)
+
+    def add(expr: Expr): ExprRef
+        this.exprs.add(expr)
+        ref(this.exprs.size() - 1)
+
+    def get(expr: ExprRef): Expr = this.exprs.get(expr.index)
+
+    def interp(expr: ExprRef): Int = match this.get(expr):
+        b: Binary =>
+            val l = this.interp(b.lhs)
+            val r = this.interp(b.rhs)
+            match b.op:
+                _: Add => l + r
+                _: Sub => l - r
+                _: Mul => l * r
+                _: Div => if (r == 0) { 0 } else { l / r }
+        n: Literal => n.num
+
+    def lit(n: Int): ExprRef = this.add(Literal(n))
+    def bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef = this.add(Binary(op, lhs, rhs))
+
+def print(n: Int): Unit
+    stdout.printInt(n)
+    stdout.println()
+
+val pool = exprPool()
+val e = pool.bin(Div(), pool.bin(Mul(), pool.bin(Sub(), pool.lit(7), pool.lit(10)), pool.lit(7)), pool.lit(2))
+print(pool.interp(e))
+val other = exprPool()
+val f = other.bin(Div(), other.bin(Add(), other.lit(4), other.lit(4)), other.bin(Sub(), other.lit(4), other.lit(4)))
+print(other.interp(f))
+print(pool.interp(e))

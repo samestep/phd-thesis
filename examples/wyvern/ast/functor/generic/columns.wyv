@@ -1,0 +1,35 @@
+// Representation 1: a node is an index into parallel lists. A functor with
+// no parameters, so each instance is a fresh pool, and its result type is
+// the signature, so its index type is abstract outside.
+module def columns(): Ast
+
+import ast
+import wyvern.collections.ArrayList
+
+type Idx
+    val index: Int
+
+def idx(i: Int): Idx = new
+    val index: Int = i
+
+type R = Idx
+
+val ops = ArrayList.ArrayList[Int](16)
+val lhs = ArrayList.ArrayList[Int](16)
+val rhs = ArrayList.ArrayList[Int](16)
+
+def add(expr: ast.Expr[Idx]): Idx
+    match expr:
+        b: ast.Binary =>
+            ops.add(ast.code(b.op))
+            lhs.add(b.lhs.index)
+            rhs.add(b.rhs.index)
+        n: ast.Literal =>
+            ops.add(0)
+            lhs.add(n.num)
+            rhs.add(0)
+    idx(ops.size() - 1)
+
+def get(expr: Idx): ast.Expr[Idx]
+    val i = expr.index
+    ast.node[Idx](ops.get(i), lhs.get(i), rhs.get(i), i => idx(i))

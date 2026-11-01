@@ -1,0 +1,42 @@
+// A pool: a node is an index into one list of triples.
+module def triples(): Pool
+
+import ast
+import wyvern.collections.ArrayList
+
+type Slot
+    val index: Int
+
+def slot(i: Int): Slot = new
+    val index: Int = i
+
+type R = Slot
+
+val triples = ArrayList.ArrayList[Int](16)
+
+def node(e: Slot): ast.Expr[Slot]
+    val i = 3 * e.index
+    val code = triples.get(i)
+    val a = triples.get(i + 1)
+    val b = triples.get(i + 2)
+    if (code == 0)
+            ast.Literal[Slot](a)
+        else
+            if (code == 5) { ast.Traced[Slot](slot(a)) } else { ast.Binary[Slot](ast.binop(code), slot(a), slot(b)) }
+
+def add(expr: ast.Expr[Slot]): Slot
+    val i = triples.size() / 3
+    match expr:
+        b: ast.Binary =>
+            triples.add(ast.code(b.op))
+            triples.add(b.lhs.index)
+            triples.add(b.rhs.index)
+        n: ast.Literal =>
+            triples.add(0)
+            triples.add(n.n)
+            triples.add(0)
+        t: ast.Traced =>
+            triples.add(5)
+            triples.add(t.inner.index)
+            triples.add(0)
+    slot(i)

@@ -1,0 +1,8 @@
+// Store whatever is computed in, as it is.
+module def same(c: Compute)
+
+type C = c.C
+type S = c.C
+
+def narrow(x: c.C): c.C = x
+def widen(x: c.C): c.C = x

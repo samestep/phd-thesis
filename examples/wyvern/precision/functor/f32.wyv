@@ -1,0 +1,15 @@
+module f32
+
+import wyvern.Float
+import single
+
+type C = Float
+
+val oneTenth: Float = single.round(Float.from("0.1"))
+
+def zero(): Float = 0.0
+def tenth(): Float = oneTenth
+def thousand(): Float = 1000.0
+def add(x: Float, y: Float): Float = single.round(x + y)
+def mul(x: Float, y: Float): Float = single.round(x * y)
+def round(x: Float): Int = (x + 0.5).floor()

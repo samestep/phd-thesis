@@ -55,6 +55,12 @@
       url = "github:titzer/virgil/d83efd1b0076e292efca1ccf4830e2f6faf6ade5";
       flake = false;
     };
+    # Wyvern isn't in nixpkgs, and has no releases: it's built from source
+    # with Ant, from the jars its repository carries.
+    wyvern = {
+      url = "github:wyvernlang/wyvern/95c92ec72737c4a4b698ba5f66a728eb14434921";
+      flake = false;
+    };
   };
   outputs =
     inputs@{

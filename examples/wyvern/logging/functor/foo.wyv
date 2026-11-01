@@ -1,0 +1,4 @@
+module def foo(log: MaybeLog)
+
+def foo(): Unit
+    log.debug(3)

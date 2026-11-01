@@ -1,0 +1,7 @@
+// Logging at each level, regardless of the maximum level.
+resource type ForceLog
+    def forceError(message: Int): Unit
+    def forceWarn(message: Int): Unit
+    def forceInfo(message: Int): Unit
+    def forceDebug(message: Int): Unit
+    def forceTrace(message: Int): Unit

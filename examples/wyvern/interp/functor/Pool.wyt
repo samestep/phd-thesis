@@ -1,0 +1,8 @@
+import ast
+
+// The pool: an index type, how to read a node through one, and how to make
+// one.
+resource type Pool
+    type R
+    def node(e: this.R): ast.Expr[this.R]
+    def add(expr: ast.Expr[this.R]): this.R

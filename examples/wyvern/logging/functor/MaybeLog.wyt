@@ -1,0 +1,7 @@
+// Logging at each level, if the current maximum level allows it.
+resource type MaybeLog
+    def error(message: Int): Unit
+    def warn(message: Int): Unit
+    def info(message: Int): Unit
+    def debug(message: Int): Unit
+    def trace(message: Int): Unit

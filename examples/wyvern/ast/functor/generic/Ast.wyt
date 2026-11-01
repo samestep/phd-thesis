@@ -1,0 +1,7 @@
+import ast
+
+// The signature of a representation, with its index type abstract.
+resource type Ast
+    type R
+    def add(expr: ast.Expr[this.R]): this.R
+    def get(expr: this.R): ast.Expr[this.R]

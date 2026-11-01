@@ -1,0 +1,31 @@
+// Representation 2: a node is an index into one list of triples.
+module def triples(): Ast
+
+import ast
+import wyvern.collections.ArrayList
+
+type Slot
+    val index: Int
+
+def slot(i: Int): Slot = new
+    val index: Int = i
+
+type R = Slot
+
+val triples = ArrayList.ArrayList[Int](16)
+
+def add(expr: ast.Expr[Slot]): Slot
+    match expr:
+        b: ast.Binary =>
+            triples.add(ast.code(b.op))
+            triples.add(b.lhs.index)
+            triples.add(b.rhs.index)
+        n: ast.Literal =>
+            triples.add(0)
+            triples.add(n.num)
+            triples.add(0)
+    slot(triples.size() / 3 - 1)
+
+def get(expr: Slot): ast.Expr[Slot]
+    val i = 3 * expr.index
+    ast.node[Slot](triples.get(i), triples.get(i + 1), triples.get(i + 2), i => slot(i))

@@ -1,0 +1,19 @@
+module def dualField(k: Field): Duals[k.F]
+
+import dual
+
+type B = k.F
+type F = dual.Dual[k.F]
+
+def variable(x: k.F): F = dual.make[k.F](x, k.constant(1.0))
+def still(x: k.F): F = dual.make[k.F](x, k.constant(0.0))
+def v(x: F): k.F = x.v
+def d(x: F): k.F = x.d
+
+def constant(n: Float): F = still(k.constant(n))
+def add(x: F, y: F): F = dual.make[k.F](k.add(x.v, y.v), k.add(x.d, y.d))
+def sub(x: F, y: F): F = dual.make[k.F](k.sub(x.v, y.v), k.sub(x.d, y.d))
+def mul(x: F, y: F): F
+    dual.make[k.F](k.mul(x.v, y.v), k.add(k.mul(x.d, y.v), k.mul(x.v, y.d)))
+def div(x: F, y: F): F
+    dual.make[k.F](k.div(x.v, y.v), k.div(k.sub(k.mul(x.d, y.v), k.mul(x.v, y.d)), k.mul(y.v, y.v)))

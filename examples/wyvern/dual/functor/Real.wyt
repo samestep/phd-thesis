@@ -1,0 +1,9 @@
+// A field that can also round.
+resource type Real
+    type F
+    def constant(n: Float): this.F
+    def add(x: this.F, y: this.F): this.F
+    def sub(x: this.F, y: this.F): this.F
+    def mul(x: this.F, y: this.F): this.F
+    def div(x: this.F, y: this.F): this.F
+    def round(x: this.F): Int

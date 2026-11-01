@@ -1,0 +1,27 @@
+// Written once, against the types alone. The tracer in force is a module
+// parameter, and so is the one a `Traced` node switches to. But a module
+// can't instantiate itself (that's an import cycle), so it can't rebind
+// `trace` for the subtree by instantiating `interp` again: inside, the
+// tracer is an ordinary argument after all.
+module def interp(pool: Pool, arith: Arith, trace: arith.V -> Unit, loud: arith.V -> Unit)
+
+import ast
+
+def run(t: arith.V -> Unit, e: pool.R): arith.V
+    val v: arith.V = match pool.node(e):
+        b: ast.Binary =>
+            val l = run(t, b.lhs)
+            val r = run(t, b.rhs)
+            match b.op:
+                _: ast.Add => arith.add(l, r)
+                _: ast.Sub => arith.sub(l, r)
+                _: ast.Mul => arith.mul(l, r)
+                _: ast.Div => arith.div(l, r)
+        n: ast.Literal => arith.value(n.n)
+        tr: ast.Traced => run(loud, tr.inner)
+    t(v)
+    v
+
+def interp(e: pool.R): arith.V = run(trace, e)
+
+def report(e: pool.R): Unit = arith.print(interp(e))

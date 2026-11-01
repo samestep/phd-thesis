@@ -1,0 +1,110 @@
+// An object type for the arithmetic, `Field`, with the type it computes on
+// as a type member `F`, implemented by one for `Float` and by
+// `dualField[T](k)`, which makes a `Field[Dual[T]]` from any `Field[T]`, so
+// duals nest, and every function in the program takes a `Field` or a `Real`
+// (a field that can also round) and a type parameter, which Wyvern can't
+// infer, so every call names it. Nothing derives the field for a dual: each
+// function that differentiates builds one, wrapping the field it was given.
+// The operations are methods of the field, not of its values, which have an
+// abstract type `T` and so no methods, so `f` writes each as a call on its
+// field, constants included (`k.constant(2.0)`). `Dual[Dual[R]]` and
+// `Dual[R]` are different types, so `nested` has to lift the outer variable
+// into the inner differentiation (`still[Dual[R]](dk, x)`): adding it as it
+// is (`ddk.add(x, variable[Dual[R]](dk, y0))`) is a type error. (The fields
+// are `resource` types only because `dualField`'s object calls this
+// script's functions, and the script holds `stdout`.)
+
+require stdout
+
+resource type Field
+    type F
+    def constant(n: Float): this.F
+    def add(x: this.F, y: this.F): this.F
+    def sub(x: this.F, y: this.F): this.F
+    def mul(x: this.F, y: this.F): this.F
+    def div(x: this.F, y: this.F): this.F
+
+resource type Real
+    type F
+    def constant(n: Float): this.F
+    def add(x: this.F, y: this.F): this.F
+    def sub(x: this.F, y: this.F): this.F
+    def mul(x: this.F, y: this.F): this.F
+    def div(x: this.F, y: this.F): this.F
+    def round(x: this.F): Int
+
+val f64: Real[Float] = new
+    type F = Float
+    def constant(n: Float): Float = n
+    def add(x: Float, y: Float): Float = x + y
+    def sub(x: Float, y: Float): Float = x - y
+    def mul(x: Float, y: Float): Float = x * y
+    def div(x: Float, y: Float): Float = x / y
+    // `floor` is the only way from a `Float` to an `Int`.
+    def round(x: Float): Int = (x + 0.5).floor()
+
+def f[T](k: Field[T], x: T): T
+    k.sub(k.sub(k.mul(k.mul(x, x), x), k.mul(k.constant(2.0), x)), k.constant(5.0))
+
+type Dual
+    type E
+    val v: this.E
+    val d: this.E
+
+def dual[T](v: T, d: T): Dual[T] = new
+    type E = T
+    val v: T = v
+    val d: T = d
+
+def variable[T](k: Field[T], x: T): Dual[T] = dual[T](x, k.constant(1.0))
+
+def still[T](k: Field[T], x: T): Dual[T] = dual[T](x, k.constant(0.0))
+
+def dualField[T](k: Field[T]): Field[Dual[T]] = new
+    type F = Dual[T]
+    def constant(n: Float): Dual[T] = still[T](k, k.constant(n))
+    def add(x: Dual[T], y: Dual[T]): Dual[T]
+        dual[T](k.add(x.v, y.v), k.add(x.d, y.d))
+    def sub(x: Dual[T], y: Dual[T]): Dual[T]
+        dual[T](k.sub(x.v, y.v), k.sub(x.d, y.d))
+    def mul(x: Dual[T], y: Dual[T]): Dual[T]
+        dual[T](k.mul(x.v, y.v), k.add(k.mul(x.d, y.v), k.mul(x.v, y.d)))
+    def div(x: Dual[T], y: Dual[T]): Dual[T]
+        dual[T](k.div(x.v, y.v), k.div(k.sub(k.mul(x.d, y.v), k.mul(x.v, y.d)), k.mul(y.v, y.v)))
+
+def show[R](k: Real[R], x: R): Unit
+    stdout.printInt(k.round(k.mul(x, k.constant(1000000.0))))
+    stdout.println()
+
+def derivatives[R](k: Real[R], x: R): Unit
+    val dk = dualField[R](k)
+    val ddk = dualField[Dual[R]](dk)
+    show[R](k, f[R](k, x))
+    show[R](k, f[Dual[R]](dk, variable[R](k, x)).d)
+    show[R](k, f[Dual[Dual[R]]](ddk, variable[Dual[R]](dk, variable[R](k, x))).d.d)
+
+def newton[R](k: Real[R], x0: R, steps: Int): Unit
+    val dk = dualField[R](k)
+    def loop(x: R, i: Int): Unit
+        if (i < steps)
+                val y = f[Dual[R]](dk, variable[R](k, x))
+                val next = k.sub(x, k.div(y.v, y.d))
+                show[R](k, next)
+                loop(next, i + 1)
+            else
+                unit
+    loop(x0, 0)
+
+// d/dx (x * d/dy (x + y)) at x = 1, y = 1.
+def nested[R](k: Real[R], at: R): R
+    val dk = dualField[R](k)
+    val ddk = dualField[Dual[R]](dk)
+    val x = variable[R](k, at)
+    // `dk.F` is `Dual[R]`, but Wyvern's checker sees that only when told.
+    val y0: Dual[R] = dk.constant(1.0)
+    val inner = ddk.add(still[Dual[R]](dk, x), variable[Dual[R]](dk, y0)).d
+    dk.mul(x, inner).d
+
+derivatives[Float](f64, 2.0)
+newton[Float](f64, 2.0, 4)
+show[Float](f64, nested[Float](f64, 1.0))

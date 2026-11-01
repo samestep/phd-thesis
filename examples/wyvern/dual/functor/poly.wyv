@@ -1,0 +1,4 @@
+module def poly(k: Field)
+
+def f(x: k.F): k.F
+    k.sub(k.sub(k.mul(k.mul(x, x), x), k.mul(k.constant(2.0), x)), k.constant(5.0))

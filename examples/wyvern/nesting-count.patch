@@ -1,0 +1,25 @@
+diff --git a/tools/src/wyvern/target/corewyvernIL/type/NominalType.java b/tools/src/wyvern/target/corewyvernIL/type/NominalType.java
+index a3f9e051..67210649 100644
+--- a/tools/src/wyvern/target/corewyvernIL/type/NominalType.java
++++ b/tools/src/wyvern/target/corewyvernIL/type/NominalType.java
+@@ -111,12 +111,17 @@ public class NominalType extends ValueType {
+             nestingCount++;
+             if (nestingCount > 100) {
+                 // check for excessive recursion failed
++                nestingCount--;
+                 throw new RuntimeException("Internal error: recursion");
+             }
+         }
+-        final StructuralType structuralType = t.getStructuralType(ctx);
+-        synchronized (NominalType.class) {
+-            nestingCount--;
++        final StructuralType structuralType;
++        try {
++            structuralType = t.getStructuralType(ctx);
++        } finally {
++            synchronized (NominalType.class) {
++                nestingCount--;
++            }
+         }
+         // return any DefinedTypeMember or AbstractTypeMember
+         return structuralType.findMatchingDecl(typeMember, cdt -> !(cdt instanceof DefinedTypeMember || cdt instanceof AbstractTypeMember), ctx);

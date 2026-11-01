@@ -1,0 +1,11 @@
+module dual
+
+type Dual
+    type E
+    val v: this.E
+    val d: this.E
+
+def make[T](v: T, d: T): Dual[T] = new
+    type E = T
+    val v: T = v
+    val d: T = d

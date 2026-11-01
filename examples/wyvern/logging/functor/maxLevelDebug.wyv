@@ -1,0 +1,7 @@
+module def maxLevelDebug(log: ForceLog): MaybeLog
+
+def error(message: Int): Unit = log.forceError(message)
+def warn(message: Int): Unit = log.forceWarn(message)
+def info(message: Int): Unit = log.forceInfo(message)
+def debug(message: Int): Unit = log.forceDebug(message)
+def trace(message: Int): Unit = unit
