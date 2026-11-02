@@ -20,6 +20,7 @@ let
       ./proposal.typ
       ./snippet.typ
       ./refs.yml
+      ./syntaxes/moss.sublime-syntax
       ./examples
     ];
   };

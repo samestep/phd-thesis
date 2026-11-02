@@ -1,5 +1,7 @@
 #import "snippet.typ": snippet
 
+#set raw(syntaxes: "syntaxes/moss.sublime-syntax")
+
 = Introduction
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023

@@ -175,11 +175,31 @@
                   touch $out
                 ''
             );
+          # The Moss grammar Typst highlights with, converted from the one
+          # Moss's VS Code extension uses. It's checked in, because the PDF
+          # also builds without flakes, so a check keeps it generated.
+          mossSyntax =
+            pkgs.runCommand "moss.sublime-syntax"
+              { nativeBuildInputs = [ (pkgs.python3.withPackages (ps: [ ps.pyyaml ])) ]; }
+              ''
+                python3 ${./syntaxes/tmlanguage-to-sublime.py} ${moss}/vscode/syntaxes/moss.tmLanguage.json > $out
+              '';
         in
         {
-          packages.default = import ./default.nix { inherit pkgs; };
+          packages = {
+            default = import ./default.nix { inherit pkgs; };
+            moss-syntax = mossSyntax;
+          };
           checks = {
             pdf = self.packages.${system}.default;
+            moss-syntax = pkgs.runCommand "check-moss-syntax" { } ''
+              if ! diff -u ${./syntaxes/moss.sublime-syntax} ${mossSyntax}; then
+                echo 'syntaxes/moss.sublime-syntax is out of date; regenerate it with:'
+                echo '  nix build .#moss-syntax && cat result > syntaxes/moss.sublime-syntax'
+                exit 1
+              fi
+              touch $out
+            '';
           }
           // lib.filterAttrs (_: drv: drv != null) (lib.listToAttrs (map example examples));
           devShells.default = pkgs.mkShellNoCC {
