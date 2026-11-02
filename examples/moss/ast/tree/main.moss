@@ -8,16 +8,16 @@ import "../../common.moss" use print_line;
 # `Ref` to the garbage-collected heap, as Rust's do through a `Box`, so
 # nothing needs a pool, but every node is its own heap allocation.
 
-unit Add;
-unit Sub;
-unit Mul;
-unit Div;
+tag Add;
+tag Sub;
+tag Mul;
+tag Div;
 
 type BinOp = Add | Sub | Mul | Div;
 
 assume Std, Wasm {
-  type Binary { op: BinOp, lhs: Ref[Boxed=Expr], rhs: Ref[Boxed=Expr] };
-  type Literal Int;
+  tag Binary { op: BinOp, lhs: Ref[Boxed=Expr], rhs: Ref[Boxed=Expr] };
+  tag Literal(Int);
 
   type Expr = Binary | Literal;
 
@@ -38,12 +38,12 @@ assume Std, Wasm, ExprHeap {
           Div => if r == 0 { 0 } else { l / r },
         }
       },
-      Literal num => num,
+      Literal(num) => num,
     }
   }
 
   fn new(expr: Expr): Ref[Boxed=Expr] { expr.boxed() }
-  fn lit(n: Int): Ref[Boxed=Expr] { new(Literal (n)) }
+  fn lit(n: Int): Ref[Boxed=Expr] { new(Literal(n)) }
   fn bin(op: BinOp, lhs: Ref[Boxed=Expr], rhs: Ref[Boxed=Expr]): Ref[Boxed=Expr] { new(Binary { op, lhs, rhs }) }
 
   fn demo() {

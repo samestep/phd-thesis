@@ -13,7 +13,7 @@ import "wasm.moss" use Wasm, Memory, I32;
 # first application's data, and so does calling `heap_reset` by hand.
 
 # A second linear memory, for the arena to live in.
-unit Scratch;
+tag Scratch;
 
 assume Wasm {
   # Where `Scratch`'s allocator starts, read once before anything is

@@ -26,7 +26,7 @@ contexts:
     - match: $
       pop: true
   declarations:
-  - match: \b(type|unit)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(type|tag)\s+([A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.moss
       2: entity.name.type.moss
@@ -68,7 +68,7 @@ contexts:
     scope: keyword.control.flow.moss
   - match: \b(import|as|use)\b
     scope: keyword.control.import.moss
-  - match: \b(assume|bind|context|fn|functor|let|type|unit|val|var)\b
+  - match: \b(assume|bind|context|fn|functor|let|tag|type|val|var)\b
     scope: storage.type.moss
   - match: \bfor\b
     scope: keyword.other.reserved.moss

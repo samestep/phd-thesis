@@ -4,10 +4,10 @@ import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
 import "../../../common.moss" use print_int;
 
-unit Add;
-unit Sub;
-unit Mul;
-unit Div;
+tag Add;
+tag Sub;
+tag Mul;
+tag Div;
 
 type BinOp = Add | Sub | Mul | Div;
 
@@ -16,8 +16,8 @@ type BinOp = Add | Sub | Mul | Div;
 type ExprRef;
 
 assume Std, ExprRef {
-  type Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
-  type Literal Int;
+  tag Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
+  tag Literal(Int);
 
   type Expr = Binary | Literal;
 
@@ -41,11 +41,11 @@ assume Std, Ast {
           Div => if r == 0 { 0 } else { l / r },
         }
       },
-      Literal num => num,
+      Literal(num) => num,
     }
   }
 
-  fn lit(n: Int): ExprRef { add(Literal (n)) }
+  fn lit(n: Int): ExprRef { add(Literal(n)) }
   fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef { add(Binary { op, lhs, rhs }) }
 
   fn report(e: ExprRef) {
@@ -77,23 +77,23 @@ assume Std {
   }
 
   # Representation 1: a node is an index into parallel lists.
-  type Idx Int;
-  type Columns { ops: IntList, lhs: IntList, rhs: IntList };
+  tag Idx(Int);
+  tag Columns { ops: IntList, lhs: IntList, rhs: IntList };
   val columns: Columns;
 
   assume columns {
-    fn Idx.at(): Int { match this { Idx i => i } }
+    fn Idx.at(): Int { match this { Idx(i) => i } }
 
     fn Idx.node(): Expr[ExprRef=Idx] {
       let i = this.at();
       let code = columns.ops.get(i);
       if code == 0 {
-        Literal (columns.lhs.get(i))
+        Literal(columns.lhs.get(i))
       } else {
         Binary[ExprRef=Idx] {
           op = op_of(code),
-          lhs = Idx (columns.lhs.get(i)),
-          rhs = Idx (columns.rhs.get(i)),
+          lhs = Idx(columns.lhs.get(i)),
+          rhs = Idx(columns.rhs.get(i)),
         }
       }
     }
@@ -106,33 +106,33 @@ assume Std {
           columns.lhs.push(lhs.at());
           columns.rhs.push(rhs.at());
         },
-        Literal num => {
+        Literal(num) => {
           columns.ops.push(0);
           columns.lhs.push(num);
           columns.rhs.push(0);
         },
       }
-      Idx (i)
+      Idx(i)
     }
   }
 
   # Representation 2: a node is an index into one list of triples.
-  type Slot Int;
+  tag Slot(Int);
   val triples: IntList;
 
   assume triples {
-    fn Slot.at(): Int { match this { Slot i => i } }
+    fn Slot.at(): Int { match this { Slot(i) => i } }
 
     fn Slot.node(): Expr[ExprRef=Slot] {
       let i = this.at() * 3;
       let code = triples.get(i);
       if code == 0 {
-        Literal (triples.get(i + 1))
+        Literal(triples.get(i + 1))
       } else {
         Binary[ExprRef=Slot] {
           op = op_of(code),
-          lhs = Slot (triples.get(i + 1)),
-          rhs = Slot (triples.get(i + 2)),
+          lhs = Slot(triples.get(i + 1)),
+          rhs = Slot(triples.get(i + 2)),
         }
       }
     }
@@ -145,13 +145,13 @@ assume Std {
           triples.push(lhs.at());
           triples.push(rhs.at());
         },
-        Literal num => {
+        Literal(num) => {
           triples.push(0);
           triples.push(num);
           triples.push(0);
         },
       }
-      Slot (i)
+      Slot(i)
     }
   }
 

@@ -6,23 +6,23 @@ import "../../../common.moss" use print_int;
 
 assume Std {
   # region: types
-  unit Add;
-  unit Sub;
-  unit Mul;
-  unit Div;
+  tag Add;
+  tag Sub;
+  tag Mul;
+  tag Div;
 
   type BinOp = Add | Sub | Mul | Div;
 
   # An expression is just an index into a pool of nodes.
-  type ExprRef Int;
+  tag ExprRef(Int);
 
-  type Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
-  type Literal Int;
+  tag Binary { op: BinOp, lhs: ExprRef, rhs: ExprRef };
+  tag Literal(Int);
 
   type Expr = Binary | Literal;
 
   # The pool: one row per node, across parallel lists.
-  type ExprPool { ops: IntList, lhs: IntList, rhs: IntList };
+  tag ExprPool { ops: IntList, lhs: IntList, rhs: IntList };
 
   val pool: ExprPool;
   # endregion
@@ -30,7 +30,7 @@ assume Std {
   assume pool {
     # region: pool
     fn ExprRef.index(): Int {
-      match this { ExprRef i => i }
+      match this { ExprRef(i) => i }
     }
 
     fn add(expr: Expr): ExprRef {
@@ -41,25 +41,25 @@ assume Std {
           pool.lhs.push(lhs.index());
           pool.rhs.push(rhs.index());
         },
-        Literal num => {
+        Literal(num) => {
           pool.ops.push(0);
           pool.lhs.push(num);
           pool.rhs.push(0);
         },
       }
-      ExprRef (i)
+      ExprRef(i)
     }
 
     fn get(expr: ExprRef): Expr {
       let i = expr.index();
       let code = pool.ops.get(i);
       if code == 0 {
-        Literal (pool.lhs.get(i))
+        Literal(pool.lhs.get(i))
       } else {
         Binary {
           op = op_of(code),
-          lhs = ExprRef (pool.lhs.get(i)),
-          rhs = ExprRef (pool.rhs.get(i)),
+          lhs = ExprRef(pool.lhs.get(i)),
+          rhs = ExprRef(pool.rhs.get(i)),
         }
       }
     }
@@ -78,12 +78,12 @@ assume Std {
             Div => if r == 0 { 0 } else { l / r },
           }
         },
-        Literal num => num,
+        Literal(num) => num,
       }
     }
     # endregion
 
-    fn lit(n: Int): ExprRef { add(Literal (n)) }
+    fn lit(n: Int): ExprRef { add(Literal(n)) }
     fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef { add(Binary { op, lhs, rhs }) }
 
     fn report(e: ExprRef) {

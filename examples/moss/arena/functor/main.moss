@@ -11,7 +11,7 @@ import "../../common.moss" use print_int;
 # what it does and does not guarantee, is in `../../arena.moss`.
 
 assume Char, Numerics, Containers {
-  type Summary { steps: Int, peak: Int };
+  tag Summary { steps: Int, peak: Int };
 
   fn summarize(start: Int): Summary {
     let path = int_list();
