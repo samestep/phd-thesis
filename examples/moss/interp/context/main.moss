@@ -40,7 +40,7 @@ assume Std, Value {
 
   context Arith =
     Value, value, print_value,
-    Value.add, Value.sub, Value.mul, Value.div
+    Value.add, Value.sub, Value.mul, Value.div,
   ;
 
   # Called with every intermediate value.
