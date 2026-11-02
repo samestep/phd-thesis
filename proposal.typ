@@ -6,16 +6,6 @@ In any programming language, one must trade off readability and maintainability 
 
 #snippet("examples/moss/interp/context/main.moss", region: "interp")
 
-The most _convenient_ way to write this code would be if `foo` had a field called `bar`. But this causes problems if there are a _million_ `Foo`s.
-
-= Prior work
-
-Lisp
-
-Koka
-
-Zig
-
 = Completed work
 
 == Theory
@@ -44,5 +34,13 @@ The Wasm binaries for the Tier 2 and Tier 3 compilers are bytewise identical.
 = Proposed work
 
 == Performance experiments
+
+= Related work
+
+Lisp
+
+Koka
+
+Zig
 
 #bibliography("refs.yml")
