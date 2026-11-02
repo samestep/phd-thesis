@@ -177,10 +177,7 @@
             );
         in
         {
-          packages.default = pkgs.runCommand "samestep-thesis" { buildInputs = [ pkgs.typst ]; } ''
-            mkdir -p $out
-            typst compile --root ${./.} ${./.}/proposal.typ $out/proposal.pdf
-          '';
+          packages.default = import ./default.nix { inherit pkgs; };
           checks = {
             pdf = self.packages.${system}.default;
           }
