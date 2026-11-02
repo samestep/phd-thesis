@@ -38,7 +38,10 @@ assume Std, Value {
   fn value(n: Int): Value;
   fn print_value(v: Value);
 
-  context Arith = Value, value, print_value, Value.add, Value.sub, Value.mul, Value.div;
+  context Arith =
+    Value, value, print_value,
+    Value.add, Value.sub, Value.mul, Value.div
+  ;
 
   # Called with every intermediate value.
   fn trace(v: Value);
