@@ -1,4 +1,4 @@
-#import "snippet.typ": listings, snippet
+#import "snippet.typ": diff, listings, snippet
 
 #set raw(syntaxes: "syntaxes/moss.sublime-syntax")
 
@@ -8,9 +8,33 @@
 
 = Introduction
 
-In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. #citet(<sampson2023>) ...
+In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. #citet(<sampson2023>) illustrates this through an example interpreter of arithmetic expressions.
 
 #snippet("examples/rust/ast/tree/tree.rs", from: "enum BinOp", through: "impl Expr")
+
+Using `Box` is easy but leaves performance on the table. A more efficient allocation strategy is to store expressions in an _arena_ as a single allocation, rather than giving each its own allocation.
+
+#diff(
+  (path: "examples/rust/ast/tree/tree.rs", from: "enum Expr"),
+  (path: "examples/rust/ast/explicit/concrete/flat.rs", from: "enum Expr", to: "struct ExprPool"),
+)
+
+But this comes at a cost. We can no longer just write `expr.interp()` on some `&Expr`. Now any operation that would previously have taken an `&Expr` needs to take an `ExprRef` instead... and _also_ an `ExprPool`, because the `ExprRef` doesn't have a "direct" way to access its data in the way that an `&Expr` does. So the natural pattern is to essentially treat `ExprPool` as a monad, and implement any `Expr`-related operation as a method on `ExprPool`.
+
+#diff(
+  (path: "examples/rust/ast/tree/tree.rs", from: "impl Expr", to: "impl Expr"),
+  (path: "examples/rust/ast/explicit/concrete/flat.rs", from: "impl ExprPool", to: "impl ExprPool"),
+)
+
+#diff(
+  (path: "examples/rust/ast/tree/tree.rs", from: "fn interp(", to: "match self"),
+  (path: "examples/rust/ast/explicit/concrete/flat.rs", from: "fn interp(", to: "match self"),
+)
+
+#diff(
+  (path: "examples/rust/ast/tree/tree.rs", from: "let lhs", to: "let rhs"),
+  (path: "examples/rust/ast/explicit/concrete/flat.rs", from: "let lhs", to: "let rhs"),
+)
 
 = Completed work
 
