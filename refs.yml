@@ -92,3 +92,13 @@ schubert2018:
     type: book
     title: "Proceedings of the 30th International Conference on Scientific and Statistical Database Management"
     publisher: ACM
+
+schubert2018bug:
+  type: thread
+  title: "{BUG #15307: Low numerical precision of (Co-) Variance}"
+  author: Schubert, Erich
+  date: 2018-08-01
+  parent:
+    type: thread
+    title: "{pgsql-bugs mailing list}"
+  url: https://www.postgresql.org/message-id/153313051300.1397.9594490737341194671%40wrigleys.postgresql.org
