@@ -9,7 +9,10 @@
 // passing over a line that is only an opening brace at the same depth. With
 // `through`, instead through the end of the item starting at the first
 // later line containing that text; with `to`, through that line itself. With
-// `comments: true`, also the comment lines directly above. Each pattern
+// `comments: true`, also the comment lines directly above. A `from` with
+// newlines in it matches consecutive lines, each containing its part, and
+// the item starts at the last: so `"Datum\nfloat8_accum("` takes in the
+// return type that PostgreSQL's C puts on the line above. Each pattern
 // is plain text, and `from` must match exactly one line, so that a file
 // changing under the document fails the build rather than silently
 // showing something else. The result is dedented, and the language for
@@ -60,16 +63,21 @@
   let start = 0
   let end = lines.len() - 1
   if from != none {
-    let matches = range(lines.len()).filter(i => lines.at(i).contains(from))
+    let parts = from.split("\n")
+    let matches = range(lines.len() - parts.len() + 1).filter(i => {
+      parts.enumerate().all(((k, part)) => lines.at(i + k).contains(part))
+    })
     assert(matches.len() == 1, message: "`" + from + "` is on " + str(matches.len()) + " lines of " + path + ", not one")
     start = matches.first()
+    // The line `from`'s last part is on, which starts the item.
+    let head = start + parts.len() - 1
     let last = if through != none { through } else { to }
     if last != none {
-      let after = range(start, lines.len()).filter(i => lines.at(i).contains(last))
+      let after = range(head, lines.len()).filter(i => lines.at(i).contains(last))
       assert(after.len() > 0, message: "no `" + last + "` after `" + from + "` in " + path)
       end = if through != none { item-end(lines, after.first()) } else { after.first() }
     } else {
-      end = item-end(lines, start)
+      end = item-end(lines, head)
     }
     if comments {
       while start > 0 and comment-prefixes.any(p => lines.at(start - 1).trim().starts-with(p)) {
