@@ -5,7 +5,8 @@
 // that text, through the end of the item it starts: the first later line
 // indented no deeper, included if it is at the same depth and closes a
 // bracket (as `}` does) and excluded otherwise (as for an
-// indentation-delimited language, or the end of an enclosing block). With
+// indentation-delimited language, or the end of an enclosing block),
+// passing over a line that is only an opening brace at the same depth. With
 // `through`, instead through the end of the item starting at the first
 // later line containing that text; with `to`, through that line itself. With
 // `comments: true`, also the comment lines directly above. Each pattern
@@ -36,6 +37,12 @@
   for j in range(i + 1, lines.len()) {
     let line = lines.at(j)
     if line.trim() == "" { continue }
+    // A brace on a line of its own at the item's depth opens its body,
+    // in the style that puts it there (as PostgreSQL's C does).
+    if indent-of(line) == depth and line.trim() == "{" {
+      end = j
+      continue
+    }
     if indent-of(line) <= depth {
       let closes = (")", "]", "}").any(c => line.trim().starts-with(c))
       if closes and indent-of(line) == depth { end = j }
@@ -116,6 +123,8 @@
 #let aside(body) = text(font: "DejaVu Sans Mono", size: 0.7em, fill: luma(55%), body)
 
 #let listings(doc) = {
+  // Tabs as wide as PostgreSQL's C is aligned for (Typst's default is 2).
+  set raw(tab-size: 4)
   // Inline code in prose sits on a small panel like a snippet's.
   show raw.where(block: false): it => if it.at("label", default: none) == <code-line> {
     it

@@ -274,6 +274,30 @@
         "type": "github"
       }
     },
+    "postgres-copyright": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-iB4Ey7n6zJBVnpXP7M3AIc4GmsFn4jGNWjbzJ9YAMtM=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/postgres/postgres/REL_11_22/COPYRIGHT"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/postgres/postgres/REL_11_22/COPYRIGHT"
+      }
+    },
+    "postgres-float": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-CoHXFUJm/Tz75XjJUmm047gHn0wJXvauUL0hHnheUp4=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/postgres/postgres/REL_11_22/src/backend/utils/adt/float.c"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/postgres/postgres/REL_11_22/src/backend/utils/adt/float.c"
+      }
+    },
     "roc-basic-cli": {
       "flake": false,
       "locked": {
@@ -338,6 +362,8 @@
         "nixpkgs": "nixpkgs",
         "ocaml-modular-implicits": "ocaml-modular-implicits",
         "oxcaml": "oxcaml",
+        "postgres-copyright": "postgres-copyright",
+        "postgres-float": "postgres-float",
         "roc-basic-cli": "roc-basic-cli",
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",

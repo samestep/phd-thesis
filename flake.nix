@@ -71,6 +71,19 @@
       url = "github:sampsyo/flatcalc/flat";
       flake = false;
     };
+    # PostgreSQL's float8 aggregates as of version 11, the last release
+    # with the schoolbook variance formula, which the `rerun` example
+    # starts from. vendor/postgres keeps the file and its license, and a
+    # check keeps them, and the C example's copies of its functions, the
+    # same as these. Just the two files: the repository is far bigger.
+    postgres-float = {
+      url = "file+https://raw.githubusercontent.com/postgres/postgres/REL_11_22/src/backend/utils/adt/float.c";
+      flake = false;
+    };
+    postgres-copyright = {
+      url = "file+https://raw.githubusercontent.com/postgres/postgres/REL_11_22/COPYRIGHT";
+      flake = false;
+    };
     # Virgil isn't in nixpkgs, and has no releases: its repository carries
     # stable compiler binaries to bootstrap the compiler from source with.
     virgil = {
@@ -246,6 +259,15 @@
               python3 ${./vendor/flatcalc/verbatim.py} ${./vendor/flatcalc/flat/src/main.rs} \
                 ${./examples/rust/ast/explicit/concrete/flat.rs} 'enum BinOp' 'enum Expr' \
                 'struct ExprRef' 'struct ExprPool' 'fn get(' 'fn add(' 'fn interp('
+              touch $out
+            '';
+            # PostgreSQL's code, as vendor/postgres keeps it and as the C
+            # `rerun` example quotes it.
+            postgres = pkgs.runCommand "check-postgres" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              diff -u ${inputs.postgres-float} ${./vendor/postgres/src/backend/utils/adt/float.c}
+              diff -u ${inputs.postgres-copyright} ${./vendor/postgres/COPYRIGHT}
+              python3 ${./vendor/postgres/excerpt.py} ${./vendor/postgres/src/backend/utils/adt/float.c} \
+                ${./examples/c/rerun/rewrite/main.c} float8_accum float8_stddev_samp
               touch $out
             '';
           }
