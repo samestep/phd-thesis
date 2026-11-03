@@ -298,6 +298,19 @@
         "url": "https://raw.githubusercontent.com/postgres/postgres/REL_11_22/src/backend/utils/adt/float.c"
       }
     },
+    "postgresql": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1699310355,
+        "narHash": "sha256-+ZW35k+/HSmHnlheApQJ5Gz5LPwokCrM0wG8ZUcZazU=",
+        "type": "tarball",
+        "url": "https://ftp.postgresql.org/pub/source/v11.22/postgresql-11.22.tar.bz2"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://ftp.postgresql.org/pub/source/v11.22/postgresql-11.22.tar.bz2"
+      }
+    },
     "roc-basic-cli": {
       "flake": false,
       "locked": {
@@ -364,6 +377,7 @@
         "oxcaml": "oxcaml",
         "postgres-copyright": "postgres-copyright",
         "postgres-float": "postgres-float",
+        "postgresql": "postgresql",
         "roc-basic-cli": "roc-basic-cli",
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",

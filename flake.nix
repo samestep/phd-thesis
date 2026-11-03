@@ -84,6 +84,12 @@
       url = "file+https://raw.githubusercontent.com/postgres/postgres/REL_11_22/COPYRIGHT";
       flake = false;
     };
+    # PostgreSQL 11.22's source, to run postgres/NumAcc4.sql against: nixpkgs
+    # has dropped version 11.
+    postgresql = {
+      url = "https://ftp.postgresql.org/pub/source/v11.22/postgresql-11.22.tar.bz2";
+      flake = false;
+    };
     # Virgil isn't in nixpkgs, and has no releases: its repository carries
     # stable compiler binaries to bootstrap the compiler from source with.
     virgil = {
@@ -261,6 +267,25 @@
                 'struct ExprRef' 'struct ExprPool' 'fn get(' 'fn add(' 'fn interp('
               touch $out
             '';
+            # PostgreSQL 11.22 computes the standard deviation of NIST's
+            # NumAcc4 data, certified 0.1, as exactly zero.
+            numacc4 =
+              let
+                postgresql = import ./postgres/postgresql.nix {
+                  inherit pkgs;
+                  src = inputs.postgresql;
+                };
+              in
+              pkgs.runCommand "check-numacc4" { nativeBuildInputs = [ postgresql ]; } ''
+                initdb --pgdata=data --username=postgres --auth=trust --locale=C --no-sync > /dev/null
+                pg_ctl --pgdata=data --log=log --wait --silent \
+                  --options="-c listen_addresses= -k $PWD" start
+                psql --host=$PWD --username=postgres --no-psqlrc --tuples-only --no-align \
+                  --file=${./postgres/NumAcc4.sql} > actual
+                pg_ctl --pgdata=data --wait --silent stop
+                echo 0 | diff -u - actual
+                touch $out
+              '';
             # PostgreSQL's code, as vendor/postgres keeps it and as the C
             # `rerun` example quotes it.
             postgres = pkgs.runCommand "check-postgres" { nativeBuildInputs = [ pkgs.python3 ]; } ''
