@@ -5,3 +5,47 @@ sampson2023:
   author:
     - Sampson, Adrian
   url: https://www.cs.cornell.edu/~asampson/blog/flattening.html
+
+postgresql2023:
+  type: repository
+  title: "{PostgreSQL 11.22}"
+  author: PostgreSQL Global Development Group
+  date: 2023-11-09
+  url: https://www.postgresql.org/docs/release/11.22/
+
+numacc4:
+  type: web
+  title: "{StRD Dataset NumAcc4}"
+  author:
+    name: National Institute of Standards and Technology
+  url:
+    value: https://www.itl.nist.gov/div898/strd/univ/numacc4.html
+    date: 2026-11-03
+
+simon1988:
+  type: article
+  title: Benchmarking Numerical Accuracy of Statistical Algorithms
+  author: ["Simon, Stephen D.", "Lesage, James P."]
+  date: 1988-12
+  page-range: 197-209
+  serial-number:
+    doi: 10.1016/0167-9473(88)90093-X
+  parent:
+    type: periodical
+    title: Computational Statistics & Data Analysis
+    volume: 7
+    issue: 2
+
+simon1989:
+  type: article
+  title: "Assessing the Accuracy of {ANOVA} Calculations in Statistical Software"
+  author: ["Simon, Stephen D.", "Lesage, James P."]
+  date: 1989-11
+  page-range: 325-332
+  serial-number:
+    doi: 10.1016/0167-9473(89)90048-0
+  parent:
+    type: periodical
+    title: Computational Statistics & Data Analysis
+    volume: 8
+    issue: 3
