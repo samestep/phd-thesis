@@ -267,6 +267,14 @@
                 'struct ExprRef' 'struct ExprPool' 'fn get(' 'fn add(' 'fn interp('
               touch $out
             '';
+            # The `shadow` example runs the `rerun` example's routines
+            # under Kahan's harness, unchanged: its copies of them must
+            # stay the same code.
+            shadow-routines = pkgs.runCommand "check-shadow-routines" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              python3 ${./vendor/flatcalc/verbatim.py} ${./examples/moss/rerun/context/main.moss} \
+                ${./examples/moss/shadow/context/main.moss} 'fn readings(' 'fn sd(' 'fn show(' 'fn report('
+              touch $out
+            '';
             # PostgreSQL 11.22 computes the standard deviation of NIST's
             # NumAcc4 data, certified 0.1, as exactly zero.
             numacc4 =

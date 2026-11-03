@@ -5,6 +5,7 @@
     "common.moss"
     "arena.moss"
     "doubledouble.moss"
+    "shadow.moss"
   ];
   run = "moss \"$main\"";
 }
