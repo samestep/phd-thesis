@@ -93,6 +93,10 @@
 
 #let language(path, lang) = if lang == auto { path.split(".").last() } else { lang }
 
+// A line of code as a diff shows it: inline raw text, labelled so that
+// `listings` doesn't set it on a panel as it does inline code in prose.
+#let code-line(text, lang) = [#raw(text, lang: lang)<code-line>]
+
 #let snippet(path, from: none, through: none, to: none, comments: false, lang: auto) = {
   let (start, body) = select(path, from: from, through: through, to: to, comments: comments)
   let (body,) = dedent(body)
@@ -112,6 +116,12 @@
 #let aside(body) = text(font: "DejaVu Sans Mono", size: 0.7em, fill: luma(55%), body)
 
 #let listings(doc) = {
+  // Inline code in prose sits on a small panel like a snippet's.
+  show raw.where(block: false): it => if it.at("label", default: none) == <code-line> {
+    it
+  } else {
+    box(fill: luma(96%), inset: (x: 2pt), outset: (y: 2.5pt), radius: 2pt, it)
+  }
   show raw.where(block: true): it => context {
     let offset = first-line.get() - 1
     let label = file-label.get()
@@ -199,7 +209,7 @@
     // A line too long for its column wraps under its own indentation.
     let code(lines, k) = if k == none { [] } else {
       let line = lines.at(k)
-      context par(leading: 0.4em, hanging-indent: (indent-of(line) + 2) * measure(raw(" ")).width, raw(line, lang: lang))
+      context par(leading: 0.4em, hanging-indent: (indent-of(line) + 2) * measure(code-line(" ", lang)).width, code-line(line, lang))
     }
     let cells = ()
     for (kept, k, l) in rows {
@@ -235,14 +245,15 @@
       (name(colspan: 3, old-name + " → " + new-name),)
     }
     // No panel around it: the rows' colours run to the edges of the text.
-    table(
+    // Clipped to a snippet's rounded corners.
+    block(radius: 3pt, clip: true, table(
       columns: if split { (auto, left-weight * 1fr, auto, right-weight * 1fr) } else { (auto, auto, 1fr) },
       stroke: none,
       fill: kept-fill,
       inset: (x: 4pt, y: 2pt),
       table.header(..header),
       ..cells,
-    )
+    ))
   }
   // Side by side, each side gets as much of the width as its widest line
   // needs (with its cells' insets), and they share what is left over; if
@@ -250,7 +261,7 @@
   // what each needs, and wrap alike.
   layout(size => {
     let inset = 8pt
-    let widest(lines) = calc.max(0pt, ..lines.map(line => measure(raw(line, lang: lang)).width)) + inset
+    let widest(lines) = calc.max(0pt, ..lines.map(line => measure(code-line(line, lang)).width)) + inset
     let numbers(start, lines) = measure(text(size: 0.8em, aside(str(start + lines.len())))).width + inset
     let (need-a, need-b) = (widest(a), widest(b))
     let room = size.width - numbers(a-start, a) - numbers(b-start, b)
