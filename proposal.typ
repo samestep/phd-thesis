@@ -43,4 +43,8 @@ This catastrophic cancellation is
   the notorious desk top calculator algorithm, also known as the one-pass algorithm.
 ]
 
+#quote(block: true, attribution: <kahan2006>)[
+  Higher precision will very often estimate a "correct" path well enough. To this end, imagine a debugger that can transform a given subprogram p, whose literal constants and variables x, y, z,~... have been declared by the programmer to have precisions thought adequate at the time, into an analogous subprogram P whose corresponding literal constants and variables X, Y, Z,~... are declared by the debugger to have greater precisions, preferably about twice as great. Then the debugger can execute both programs p and P simultaneously (actually interleaved) with the same input (or copies of it if the subprogram will change it) and compare their progress to see where one of the variables x, y, z,~... first departs excessively from its analog X, Y, Z,~...~.
+]
+
 #bibliography("refs.yml", style: "chicago-author-date")
