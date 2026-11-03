@@ -253,6 +253,9 @@
       inset: (x: 4pt, y: 2pt),
       table.header(..header),
       ..cells,
+      // Room below the last line, in the panel's grey whatever that line
+      // is, as a snippet has below its own.
+      table.cell(colspan: if split { 4 } else { 3 }, inset: (top: 6pt, rest: 0pt), []),
     ))
   }
   // Side by side, each side gets as much of the width as its widest line
