@@ -91,7 +91,7 @@ contexts:
     - match: \\.
       scope: invalid.illegal.escape.moss
   numbers:
-  - match: \b[0-9]+\.[0-9]+\b
+  - match: \b[0-9]+(?:\.[0-9]+(?:[eE][+-]?[0-9]+)?|[eE][+-]?[0-9]+)\b
     scope: constant.numeric.decimal.moss
   - match: \b[0-9]+\b
     scope: constant.numeric.integer.moss
