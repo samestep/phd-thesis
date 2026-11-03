@@ -54,23 +54,23 @@
     # both files, and a check keeps them, and the Rust examples' copies of
     # their items, the same as these.
     flatcalc = {
-      url = "github:sampsyo/flatcalc/5a5d1a72edb073e7be15568bf6ac2b200743a376";
+      url = "github:sampsyo/flatcalc";
       flake = false;
     };
     flatcalc-flat = {
-      url = "github:sampsyo/flatcalc/4cbc6aff14289144daae0395747a258e442b2984";
+      url = "github:sampsyo/flatcalc/flat";
       flake = false;
     };
     # Virgil isn't in nixpkgs, and has no releases: its repository carries
     # stable compiler binaries to bootstrap the compiler from source with.
     virgil = {
-      url = "github:titzer/virgil/d83efd1b0076e292efca1ccf4830e2f6faf6ade5";
+      url = "github:titzer/virgil";
       flake = false;
     };
     # Wyvern isn't in nixpkgs, and has no releases: it's built from source
     # with Ant, from the jars its repository carries.
     wyvern = {
-      url = "github:wyvernlang/wyvern/95c92ec72737c4a4b698ba5f66a728eb14434921";
+      url = "github:wyvernlang/wyvern";
       flake = false;
     };
   };

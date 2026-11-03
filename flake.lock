@@ -46,7 +46,6 @@
       "original": {
         "owner": "sampsyo",
         "repo": "flatcalc",
-        "rev": "5a5d1a72edb073e7be15568bf6ac2b200743a376",
         "type": "github"
       }
     },
@@ -63,8 +62,8 @@
       "original": {
         "owner": "sampsyo",
         "repo": "flatcalc",
-        "rev": "4cbc6aff14289144daae0395747a258e442b2984",
-        "type": "github"
+        "type": "github",
+        "ref": "flat"
       }
     },
     "granule": {
@@ -305,7 +304,6 @@
       "original": {
         "owner": "titzer",
         "repo": "virgil",
-        "rev": "d83efd1b0076e292efca1ccf4830e2f6faf6ade5",
         "type": "github"
       }
     },
@@ -322,7 +320,6 @@
       "original": {
         "owner": "wyvernlang",
         "repo": "wyvern",
-        "rev": "95c92ec72737c4a4b698ba5f66a728eb14434921",
         "type": "github"
       }
     }
