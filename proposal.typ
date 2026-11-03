@@ -26,14 +26,14 @@ Why? Up until version 12, Postgres computed standard deviation by first computin
 
 #snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2727, to: 2731)
 
-... and then computing $N a - b^2$:
+... and then computing $N b - a^2$:
 
-#snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2942, to: 2948)
+#snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2942, to: 2947)
 
 This catastrophic cancellation is
 
 #quote(block: true, attribution: <simon1988>)[
-  the notorious desktop algorithm, also known as the one-pass algorithm.
+  the notorious desk top calculator algorithm, also known as the one-pass algorithm.
 ]
 
 #bibliography("refs.yml", style: "chicago-author-date")
