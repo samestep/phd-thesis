@@ -1,5 +1,18 @@
 {
   "nodes": {
+    "bumpalo": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1153704088,
+        "narHash": "sha256-Jbohw96ToBr4fb0BfWwgGCuXccnqdE+LKCV9e68DPLU=",
+        "type": "tarball",
+        "url": "https://static.crates.io/crates/bumpalo/bumpalo-3.20.3.crate"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://static.crates.io/crates/bumpalo/bumpalo-3.20.3.crate"
+      }
+    },
     "effekt": {
       "flake": false,
       "locked": {
@@ -314,6 +327,7 @@
     },
     "root": {
       "inputs": {
+        "bumpalo": "bumpalo",
         "effekt": "effekt",
         "flatcalc": "flatcalc",
         "flatcalc-flat": "flatcalc-flat",

@@ -50,6 +50,11 @@
       url = "github:oxcaml/oxcaml";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Bumpalo, for the Rust arena example: a `.crate` is a gzipped tarball.
+    bumpalo = {
+      url = "tarball+https://static.crates.io/crates/bumpalo/bumpalo-3.20.3.crate";
+      flake = false;
+    };
     ocaml-modular-implicits = {
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
