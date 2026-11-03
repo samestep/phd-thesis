@@ -18,12 +18,22 @@
 
 = Introduction
 
-PostgreSQL 11.22 (#cite(<postgresql2023>, form: "year")) returns zero for the following query @simon1989:
+PostgreSQL 11.22 (#cite(<postgresql2023>, form: "year")) returns zero for the following query @numacc4:
 
 #snippet("postgres/NumAcc4.sql")
 
-Why?
+Why? Up until version 12, Postgres computed standard deviation by first computing $a = sum x$ and $b = sum x^2$ ...
 
-#snippet("vendor/postgres/src/backend/utils/adt/float.c", from: "Datum\nfloat8_stddev_samp(")
+#snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2727, to: 2731)
+
+... and then computing $N a - b^2$:
+
+#snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2942, to: 2948)
+
+This catastrophic cancellation is
+
+#quote(block: true, attribution: <simon1988>)[
+  the notorious desktop algorithm, also known as the one-pass algorithm.
+]
 
 #bibliography("refs.yml", style: "chicago-author-date")
