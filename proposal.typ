@@ -4,6 +4,13 @@
 
 #show: listings
 
+#show quote.where(block: true): it => block(
+  width: 100%,
+  stroke: (left: 2pt + luma(75%)),
+  outset: (left: -0.4em, y: 0.5em),
+  it,
+)
+
 #let citet(key) = cite(key, form: "prose")
 
 #align(center)[
