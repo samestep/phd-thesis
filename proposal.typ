@@ -6,6 +6,16 @@
 
 #let citet(key) = cite(key, form: "prose")
 
+#align(center)[
+  = Call-Tree Polymorphism
+
+  Sam Estep
+]
+
+= Abstract
+
+...
+
 = Introduction
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. #citet(<sampson2023>) illustrates this through an example interpreter of arithmetic expressions.
