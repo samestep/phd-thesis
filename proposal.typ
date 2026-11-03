@@ -7,7 +7,7 @@
 #let citet(key) = cite(key, form: "prose")
 
 #align(center)[
-  = Call-Tree Polymorphism
+  = Ambient Polymorphism
 
   Sam Estep
 ]
