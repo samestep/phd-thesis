@@ -33,6 +33,40 @@
         "type": "github"
       }
     },
+    "flatcalc": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1745428710,
+        "narHash": "sha256-qOEfo03JjJWr5umsssM3uyMhYYrbJ5Zncg6YDLmvlYc=",
+        "owner": "sampsyo",
+        "repo": "flatcalc",
+        "rev": "5a5d1a72edb073e7be15568bf6ac2b200743a376",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sampsyo",
+        "repo": "flatcalc",
+        "rev": "5a5d1a72edb073e7be15568bf6ac2b200743a376",
+        "type": "github"
+      }
+    },
+    "flatcalc-flat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1745429035,
+        "narHash": "sha256-MMX1sa8+fkfiHMsTovpoR84YPGNvtWMifzPQ1MNwc3I=",
+        "owner": "sampsyo",
+        "repo": "flatcalc",
+        "rev": "4cbc6aff14289144daae0395747a258e442b2984",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sampsyo",
+        "repo": "flatcalc",
+        "rev": "4cbc6aff14289144daae0395747a258e442b2984",
+        "type": "github"
+      }
+    },
     "granule": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -221,6 +255,8 @@
     "root": {
       "inputs": {
         "effekt": "effekt",
+        "flatcalc": "flatcalc",
+        "flatcalc-flat": "flatcalc-flat",
         "granule": "granule",
         "granule-linux-x86_64": "granule-linux-x86_64",
         "granule-macos-arm64": "granule-macos-arm64",

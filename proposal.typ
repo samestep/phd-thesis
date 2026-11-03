@@ -8,7 +8,7 @@
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
 
-#snippet("examples/rust/interp/traits/main.rs", from: "fn interp<", through: "fn report<", comments: true)
+#snippet("examples/rust/ast/tree/tree.rs", from: "enum Expr", through: "impl Expr", comments: true)
 
 = Completed work
 

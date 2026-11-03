@@ -5,5 +5,5 @@
     "common.moss"
     "arena.moss"
   ];
-  run = "moss main.moss";
+  run = "moss \"$main\"";
 }

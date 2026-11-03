@@ -49,6 +49,18 @@
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
     };
+    # Sampson's flatcalc, which the `ast` example starts from: its `main`
+    # branch is the tree, its `flat` branch the pool. vendor/flatcalc keeps
+    # both files, and a check keeps them, and the Rust examples' copies of
+    # their items, the same as these.
+    flatcalc = {
+      url = "github:sampsyo/flatcalc/5a5d1a72edb073e7be15568bf6ac2b200743a376";
+      flake = false;
+    };
+    flatcalc-flat = {
+      url = "github:sampsyo/flatcalc/4cbc6aff14289144daae0395747a258e442b2984";
+      flake = false;
+    };
     # Virgil isn't in nixpkgs, and has no releases: its repository carries
     # stable compiler binaries to bootstrap the compiler from source with.
     virgil = {
@@ -97,6 +109,9 @@
           # own where its toolchain differs. Whatever an example prints must
           # match `examples/<program>.txt`. A `check.nix` gets `pkgs`, this
           # flake's `inputs` (for sources nixpkgs doesn't have), and `moss`.
+          # A `run` names the file it runs as `$main`: the example's `main.*`,
+          # or else its one file, for an example the proposal shows, whose
+          # name is its label there (see `snippet.typ`).
           # It may also list `shared` files, paths under `examples/<language>`
           # that its examples import: they are copied in beside the example
           # where they sit in the repository, so a relative import reaches
@@ -144,6 +159,15 @@
               };
               name = "example-${lib.concatStringsSep "-" segments}";
               dir = under segments;
+              files = lib.attrNames (lib.filterAttrs (_: type: type != "directory") (builtins.readDir dir));
+              mains = lib.filter (lib.hasPrefix "main.") files;
+              main =
+                if mains != [ ] then
+                  lib.head mains
+                else if lib.length files == 1 then
+                  lib.head files
+                else
+                  throw "${name}: no main.* file, and more than one file";
               shared = spec.shared or [ ];
               # The example's place under its language's directory.
               rel = lib.concatStringsSep "/" (lib.drop 1 segments);
@@ -168,6 +192,7 @@
                 pkgs.runCommandCC name { nativeBuildInputs = spec.packages or [ ]; } ''
                   ${setup}
                   export HOME=$(mktemp -d)
+                  main=${lib.escapeShellArg main}
                   {
                     ${spec.run}
                   } > actual
@@ -198,6 +223,19 @@
                 echo '  nix build .#moss-syntax && cat result > syntaxes/moss.sublime-syntax'
                 exit 1
               fi
+              touch $out
+            '';
+            # Sampson's code, as vendor/flatcalc keeps it and as the Rust
+            # `ast` examples quote it.
+            flatcalc = pkgs.runCommand "check-flatcalc" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+              diff -u ${inputs.flatcalc}/src/main.rs ${./vendor/flatcalc/main/src/main.rs}
+              diff -u ${inputs.flatcalc-flat}/src/main.rs ${./vendor/flatcalc/flat/src/main.rs}
+              diff -u ${inputs.flatcalc}/LICENSE ${./vendor/flatcalc/LICENSE}
+              python3 ${./vendor/flatcalc/verbatim.py} ${./vendor/flatcalc/main/src/main.rs} \
+                ${./examples/rust/ast/tree/tree.rs} 'enum BinOp' 'enum Expr' 'impl Expr'
+              python3 ${./vendor/flatcalc/verbatim.py} ${./vendor/flatcalc/flat/src/main.rs} \
+                ${./examples/rust/ast/explicit/concrete/flat.rs} 'enum BinOp' 'enum Expr' \
+                'struct ExprRef' 'struct ExprPool' 'fn get(' 'fn add(' 'fn interp('
               touch $out
             '';
           }
