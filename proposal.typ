@@ -1,12 +1,14 @@
-#import "snippet.typ": snippet, listings
+#import "snippet.typ": listings, snippet
 
 #set raw(syntaxes: "syntaxes/moss.sublime-syntax")
 
 #show: listings
 
+#let citet(key) = cite(key, form: "prose")
+
 = Introduction
 
-In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
+In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. #citet(<sampson2023>) ...
 
 #snippet("examples/rust/ast/tree/tree.rs", from: "enum BinOp", through: "impl Expr")
 
@@ -47,4 +49,4 @@ Koka
 
 Zig
 
-#bibliography("refs.yml")
+#bibliography("refs.yml", style: "chicago-author-date")
