@@ -22,6 +22,8 @@ let
       ./refs.yml
       ./syntaxes/moss.sublime-syntax
       ./examples
+      ./vendor
+      ./postgres/NumAcc4.sql
     ];
   };
 in
