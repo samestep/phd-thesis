@@ -15,7 +15,11 @@
 // return type that PostgreSQL's C puts on the line above. Each pattern
 // is plain text, and `from` must match exactly one line, so that a file
 // changing under the document fails the build rather than silently
-// showing something else. The result is dedented, and the language for
+// showing something else. Any of `from`, `through` and `to` may instead
+// be a line number, counted from 1 as the snippet numbers them: the line
+// the pattern would have matched. A number can't fail that way, so use
+// one only for a file that can't change under the document, such as one
+// under `vendor/` that a check keeps the same as upstream. The result is dedented, and the language for
 // highlighting defaults to the file's extension.
 //
 // A file is labelled by its name alone, so no two files the document
@@ -63,19 +67,30 @@
   let start = 0
   let end = lines.len() - 1
   if from != none {
-    let parts = from.split("\n")
-    let matches = range(lines.len() - parts.len() + 1).filter(i => {
-      parts.enumerate().all(((k, part)) => lines.at(i + k).contains(part))
-    })
-    assert(matches.len() == 1, message: "`" + from + "` is on " + str(matches.len()) + " lines of " + path + ", not one")
-    start = matches.first()
-    // The line `from`'s last part is on, which starts the item.
-    let head = start + parts.len() - 1
+    let head = 0
+    (start, head) = if type(from) == int {
+      assert(1 <= from and from <= lines.len(), message: "line " + str(from) + " is not in " + path)
+      (from - 1, from - 1)
+    } else {
+      let parts = from.split("\n")
+      let matches = range(lines.len() - parts.len() + 1).filter(i => {
+        parts.enumerate().all(((k, part)) => lines.at(i + k).contains(part))
+      })
+      assert(matches.len() == 1, message: "`" + from + "` is on " + str(matches.len()) + " lines of " + path + ", not one")
+      // The item starts on the line `from`'s last part is on.
+      (matches.first(), matches.first() + parts.len() - 1)
+    }
     let last = if through != none { through } else { to }
     if last != none {
-      let after = range(head, lines.len()).filter(i => lines.at(i).contains(last))
-      assert(after.len() > 0, message: "no `" + last + "` after `" + from + "` in " + path)
-      end = if through != none { item-end(lines, after.first()) } else { after.first() }
+      let found = if type(last) == int {
+        assert(head < last and last <= lines.len(), message: "line " + str(last) + " is not after line " + str(head + 1) + " in " + path)
+        last - 1
+      } else {
+        let after = range(head, lines.len()).filter(i => lines.at(i).contains(last))
+        assert(after.len() > 0, message: "no `" + last + "` after line " + str(head + 1) + " in " + path)
+        after.first()
+      }
+      end = if through != none { item-end(lines, found) } else { found }
     } else {
       end = item-end(lines, head)
     }
