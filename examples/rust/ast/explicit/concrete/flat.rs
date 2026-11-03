@@ -1,49 +1,29 @@
 // The pool has to be passed to everything that touches an `Expr`. The types
-// and the pool's methods but `default` are Sampson's, verbatim (flatcalc's
-// `flat` branch); his `default` reserves room for 100 million nodes, for his
-// benchmark, and the rest builds two expressions in place of his parser.
+// and the pool's methods but `default` are Sampson's code (flatcalc's `flat`
+// branch), laid out as in his blog post; his `default` reserves room for 100
+// million nodes, for his benchmark, and the rest builds two expressions in
+// place of his parser.
 
-/// The arithmetic operators our language supports.
-#[derive(Debug)]
-enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-}
-
-/// Our little programming language.
-#[derive(Debug)]
+enum BinOp { Add, Sub, Mul, Div }
 enum Expr {
     Binary(BinOp, ExprRef, ExprRef),
     Literal(i64),
 }
 
-/// The thing we use instead of pointers to refer to expressions.
-///
-/// In this "flattened" implementation, references are just indices into a vector where the `Expr`s
-/// are stored. We use the "newtype" pattern instead of a plain `u32` here to clarify where the
-/// reference is supposed to be used.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 struct ExprRef(u32);
 
-/// An "arena" for storing expressions that can refer to each other.
-///
-/// This is just a plain, dense array where a family of `Expr`s live.
 struct ExprPool(Vec<Expr>);
 
 impl ExprPool {
-    /// Create an empty pool.
     fn default() -> Self {
         Self(Vec::new())
     }
 
-    /// Dereference an AST node reference, obtaining the underlying `Expr`.
     fn get(&self, expr: ExprRef) -> &Expr {
         &self.0[expr.0 as usize]
     }
 
-    /// Add an expression to the pool and get a reference to it.
     fn add(&mut self, expr: Expr) -> ExprRef {
         let idx = self.0.len();
         self.0.push(expr);

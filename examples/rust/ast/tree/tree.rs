@@ -1,26 +1,16 @@
 // The tree Sampson starts from: each node owns its children through a `Box`,
 // so nothing needs a pool, but every node is its own heap allocation. The
-// types and the interpreter are his, verbatim (flatcalc's `main` branch);
-// the rest builds two expressions in place of his parser.
+// types and the interpreter are his code (flatcalc's `main` branch), laid
+// out as in his blog post; the rest builds two expressions in place of his
+// parser.
 
-/// The arithmetic operators our language supports.
-#[derive(Debug)]
-enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-}
-
-/// Our little programming language.
-#[derive(Debug)]
+enum BinOp { Add, Sub, Mul, Div }
 enum Expr {
     Binary(BinOp, Box<Expr>, Box<Expr>),
     Literal(i64),
 }
 
 impl Expr {
-    /// Evaluate the expression.
     fn interp(&self) -> i64 {
         match self {
             Expr::Binary(op, lhs, rhs) => {

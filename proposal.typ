@@ -8,7 +8,7 @@
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
 
-#snippet("examples/rust/ast/tree/tree.rs", from: "enum Expr", through: "impl Expr", comments: true)
+#snippet("examples/rust/ast/tree/tree.rs", from: "enum BinOp", through: "impl Expr")
 
 = Completed work
 
