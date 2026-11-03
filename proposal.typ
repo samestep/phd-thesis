@@ -1,26 +1,14 @@
-#import "snippet.typ": snippet
+#import "snippet.typ": snippet, listings
 
 #set raw(syntaxes: "syntaxes/moss.sublime-syntax")
 
-// Code blocks sit on a light panel, with line numbers right-aligned in a
-// column as wide as the block's last one. Each line's body is boxed in
-// the rest of the width, so a line too long for it wraps under itself
-// rather than under the numbers.
-#show raw.where(block: true): it => {
-  show raw.line: line => context {
-    let width = measure(str(line.count)).width
-    box(width: width, align(right, text(fill: luma(60%), str(line.number))))
-    h(1em)
-    box(width: 1fr, line.body)
-  }
-  block(fill: luma(96%), inset: 8pt, radius: 3pt, width: 100%, it)
-}
+#show: listings
 
 = Introduction
 
 In any programming language, one must trade off readability and maintainability on the one hand, and performance on the other hand. One common source of this tension is the need to access objects related to a given one. @sampson2023
 
-#snippet("examples/moss/interp/context/main.moss", region: "interp")
+#snippet("examples/rust/interp/traits/main.rs", from: "fn interp<", through: "fn report<", comments: true)
 
 = Completed work
 

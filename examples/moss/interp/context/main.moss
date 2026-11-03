@@ -29,7 +29,6 @@ assume Std, ExprRef {
   context Ast = ExprRef, ExprRef.data, add;
 }
 
-# region: interp
 # The arithmetic of the interpreted language: what a value is, what a
 # literal means, and how to print one.
 type Value;
@@ -77,7 +76,6 @@ assume Std, Ast, Arith, trace, Trace {
 
   fn report(e: ExprRef) { print_value(interp(e)); }
 }
-# endregion
 
 assume Std, Ast {
   fn lit(n: Int): ExprRef { add(Literal(n)) }
@@ -140,7 +138,6 @@ assume Std {
   fn int_of(s: Sat): Int { match s { Sat(n) => n } }
 }
 
-# region: semantics
 # Three meanings for the interpreted language's arithmetic.
 functor Wrapping: Std -> Value, value, print_value {
   bind Value = Int;
@@ -163,7 +160,6 @@ functor Floating: Std -> Value, value, print_value {
   bind value = float;
   bind print_value = (v) => print_line(v.round());
 }
-# endregion
 
 # Two ways to trace: not at all, and by printing each value.
 functor Quiet: Std, Value -> trace {
@@ -179,7 +175,6 @@ functor Loud: Std, Arith -> trace {
 }
 
 assume Wasm, Wasi, Branch {
-  # region: main
   fn main() {
     bind WasiStd;
     bind triples = int_list();
@@ -207,5 +202,4 @@ assume Wasm, Wasi, Branch {
       report(e);
     }
   }
-  # endregion
 }

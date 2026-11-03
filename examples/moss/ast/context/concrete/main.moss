@@ -5,7 +5,6 @@ import "wasip1.moss" use Wasi;
 import "../../../common.moss" use print_int;
 
 assume Std {
-  # region: types
   tag Add;
   tag Sub;
   tag Mul;
@@ -25,10 +24,8 @@ assume Std {
   tag ExprPool { ops: IntList, lhs: IntList, rhs: IntList };
 
   val pool: ExprPool;
-  # endregion
 
   assume pool {
-    # region: pool
     fn ExprRef.index(): Int {
       match this { ExprRef(i) => i }
     }
@@ -63,9 +60,7 @@ assume Std {
         }
       }
     }
-    # endregion
 
-    # region: interp
     fn ExprRef.interp(): Int {
       match get(this) {
         Binary { op, lhs, rhs } => {
@@ -81,7 +76,6 @@ assume Std {
         Literal(num) => num,
       }
     }
-    # endregion
 
     fn lit(n: Int): ExprRef { add(Literal(n)) }
     fn bin(op: BinOp, lhs: ExprRef, rhs: ExprRef): ExprRef { add(Binary { op, lhs, rhs }) }
@@ -113,7 +107,6 @@ assume Std {
     }
   }
 
-  # region: main
   fn demo() {
     bind pool = ExprPool { ops = int_list(), lhs = int_list(), rhs = int_list() };
     let e = bin(Div, bin(Mul, bin(Sub, lit(7), lit(10)), lit(7)), lit(2));
@@ -124,7 +117,6 @@ assume Std {
     }
     report(e);
   }
-  # endregion
 }
 
 assume Wasm, Wasi, Branch {
