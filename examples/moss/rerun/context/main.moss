@@ -1,0 +1,73 @@
+import "access.moss" use .get, .length, .push;
+import "wasi.moss" use WasiStd;
+import "wasistd.moss" use Branch;
+import "wasm.moss" use Wasm;
+import "wasip1.moss" use Wasi;
+import "../../common.moss" use print_line;
+import "../../doubledouble.moss" use DoubleDouble, widen_all;
+
+# Rerunning a subprogram in twice the precision by rebinding `Float` for
+# one block. `readings` and `sd` are ordinary code against `Std`, with no
+# type parameters, no wrapped literals and no element types, and
+# `{ bind DoubleDouble; ... }` compiles them again, specialized, with every
+# `Float` they make (literals, accumulators, the list) a double-double:
+# Kahan's p and P in one program. What it can't do: data made outside the
+# block is f64, and has to be lifted in (`widen_all`), since a list of the
+# outer `Float` is not a list of the inner one; and everything below the
+# bind that uses `Float` is transformed, so no callee can be left at f64.
+# Output, in billionths: the standard deviation of NIST's NumAcc4 data in
+# f64 (0: the clamp hides a negative numerator); in double-double over the
+# same f64 readings; and in double-double from the code's own literals,
+# NIST's certified 0.1.
+
+assume Std {
+  # NIST StRD NumAcc4: 10000000.2, then 10000000.1 and 10000000.3 in turn.
+  fn readings(): FloatList {
+    let xs = float_list();
+    xs.push(10000000.2);
+    var i = 1;
+    while i < 1001 {
+      if i % 2 == 1 { xs.push(10000000.1); } else { xs.push(10000000.3); }
+      i = i + 1;
+    }
+    xs
+  }
+
+  # The schoolbook one-pass formula, as PostgreSQL's `stddev` computed
+  # it until version 12, clamp included.
+  fn sd(xs: FloatList): Float {
+    var n = 0.0;
+    var sum = 0.0;
+    var sum_sq = 0.0;
+    var i = 0;
+    while i < xs.length() {
+      let x = xs.get(i);
+      n = n + 1.0;
+      sum = sum + x;
+      sum_sq = sum_sq + x * x;
+      i = i + 1;
+    }
+    let numerator = n * sum_sq - sum * sum;
+    if numerator <= 0.0 { 0.0 } else { (numerator / (n * (n - 1.0))).sqrt() }
+  }
+
+  fn show(sd: Float) { print_line((sd * 1000000000.0).round()); }
+
+  fn report() { show(sd(readings())); }
+}
+
+assume Wasm, Wasi, Branch {
+  fn main() {
+    bind WasiStd;
+    report();
+    let xs = readings();
+    {
+      bind DoubleDouble;
+      show(sd(widen_all(xs)));
+    }
+    {
+      bind DoubleDouble;
+      report();
+    }
+  }
+}

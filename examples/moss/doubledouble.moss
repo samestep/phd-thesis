@@ -1,0 +1,171 @@
+# Double-double arithmetic: a number is an unevaluated sum `hi + lo` of
+# two floats of the `Float` in force where `DoubleDouble` is applied,
+# with `|lo|` at most half an ulp of `hi`, so about twice its precision
+# (106 bits over f64). What the other languages' examples get from QD,
+# DoubleFloats or their own few dozen lines. Imported by a relative path,
+# so the examples' `check.nix` lists it as `shared`.
+#
+# TwoSum (Knuth) and Dekker's TwoProd are exact; add, multiply, divide
+# and square root are the usual ones (QD's `ieee_add`, Dekker's product,
+# long division by three quotients). Dekker's split assumes the base is
+# binary64 (2^27 + 1), and nothing here handles overflow.
+
+import "access.moss" use Elem, .get, .set, .length, .push;
+import "float.moss" use Floats;
+
+type Base;
+type BaseList;
+
+assume Int, Base {
+  fn lift(n: Int): Base;
+  assume BaseList {
+    fn base_list(): BaseList;
+    context BaseOps =
+      Base, lift,
+      Base.add, Base.sub, Base.mul, Base.div, Base.neg, Base.sqrt, Base.abs,
+      Base.eq, Base.ne, Base.lt, Base.gt, Base.le, Base.ge, Base.trunc, Base.round,
+      BaseList, base_list,
+      BaseList.push[Elem=Base], BaseList.get[Elem=Base], BaseList.set[Elem=Base], BaseList.length,
+    ;
+  }
+}
+
+assume Int, zero, one, Int.add, Int.sub, Int.mul, Int.lt, BaseOps {
+  tag DD { hi: Base, lo: Base };
+  # A list of them as two packed lists of the base.
+  tag DDList { his: BaseList, los: BaseList };
+
+  # A base float, or a list of them, as double-doubles, exactly: for
+  # values made outside the block that applied `DoubleDouble`.
+  fn widen(x: Base): DD { DD { hi = x, lo = lift(zero) } }
+  fn widen_all(xs: BaseList): DDList {
+    let ys = DDList { his = base_list(), los = base_list() };
+    var i = 0;
+    while i < xs.length() {
+      ys.his.push(xs.get(i));
+      ys.los.push(lift(zero));
+      i = i + 1;
+    }
+    ys
+  }
+
+  fn quick_two_sum(s: Base, e: Base): DD {
+    let h = s + e;
+    DD { hi = h, lo = e - (h - s) }
+  }
+  fn two_sum(a: Base, b: Base): DD {
+    let s = a + b;
+    let bb = s - a;
+    DD { hi = s, lo = (a - (s - bb)) + (b - bb) }
+  }
+  fn split(a: Base): Base {
+    let t = lift(134217729) * a;
+    t - (t - a)
+  }
+  fn two_prod(a: Base, b: Base): DD {
+    let p = a * b;
+    let ah = split(a);
+    let al = a - ah;
+    let bh = split(b);
+    let bl = b - bh;
+    DD { hi = p, lo = ((ah * bh - p) + ah * bl + al * bh) + al * bl }
+  }
+
+  fn dd_add(a: DD, b: DD): DD {
+    let s = two_sum(a.hi, b.hi);
+    let t = two_sum(a.lo, b.lo);
+    let u = quick_two_sum(s.hi, s.lo + t.hi);
+    quick_two_sum(u.hi, u.lo + t.lo)
+  }
+  fn dd_neg(a: DD): DD { DD { hi = -a.hi, lo = -a.lo } }
+  fn dd_mul(a: DD, b: DD): DD {
+    let p = two_prod(a.hi, b.hi);
+    quick_two_sum(p.hi, p.lo + (a.hi * b.lo + a.lo * b.hi))
+  }
+  fn dd_scale(a: DD, b: Base): DD {
+    let p = two_prod(a.hi, b);
+    quick_two_sum(p.hi, p.lo + a.lo * b)
+  }
+  fn dd_div(a: DD, b: DD): DD {
+    let q1 = a.hi / b.hi;
+    let r1 = dd_add(a, dd_neg(dd_scale(b, q1)));
+    let q2 = r1.hi / b.hi;
+    let r2 = dd_add(r1, dd_neg(dd_scale(b, q2)));
+    let q3 = r2.hi / b.hi;
+    dd_add(quick_two_sum(q1, q2), widen(q3))
+  }
+  fn dd_sqrt(a: DD): DD {
+    # Zero stays zero, and a negative number is NaN, as in the base.
+    if a.hi <= lift(zero) { return DD { hi = a.hi.sqrt(), lo = a.hi.sqrt() }; }
+    let x = a.hi.sqrt();
+    let r = dd_add(a, dd_neg(two_prod(x, x)));
+    quick_two_sum(x, r.hi / (x + x))
+  }
+  fn dd_lt(a: DD, b: DD): Bool {
+    if a.hi < b.hi { true } else if a.hi == b.hi { a.lo < b.lo } else { false }
+  }
+  fn dd_eq(a: DD, b: DD): Bool {
+    if a.hi == b.hi { a.lo == b.lo } else { false }
+  }
+  # To the nearest integer, ties to even: `hi`'s, unless `hi` is
+  # exactly halfway and `lo` says which way.
+  fn dd_round(a: DD): Int {
+    let n = a.hi.round();
+    let d = a.hi - lift(n);
+    let half = lift(one) / lift(one + one);
+    if d == half {
+      if a.lo > lift(zero) { return n + one; }
+    } else if d == -half {
+      if a.lo < lift(zero) { return n - one; }
+    }
+    n
+  }
+  # Toward zero: `hi`'s, unless `hi` is a whole number and `lo` pulls it
+  # back toward zero.
+  fn dd_trunc(a: DD): Int {
+    let n = a.hi.trunc();
+    if lift(n) == a.hi {
+      if a.hi > lift(zero) {
+        if a.lo < lift(zero) { return n - one; }
+      } else if a.lo > lift(zero) { return n + one; }
+    }
+    n
+  }
+}
+
+# All of `Floats` at double-double over the `Float` in force.
+functor DoubleDouble: Std -> Floats {
+  bind Base = Float;
+  bind lift = float;
+  bind BaseList = FloatList;
+  bind base_list = float_list;
+  bind Float = DD;
+  bind float = (n) => widen(lift(n));
+  bind FloatList = DDList;
+  bind float_list = () => DDList { his = base_list(), los = base_list() };
+  bind Float.add = (r) => dd_add(this, r);
+  bind Float.sub = (r) => dd_add(this, dd_neg(r));
+  bind Float.mul = (r) => dd_mul(this, r);
+  bind Float.div = (r) => dd_div(this, r);
+  bind Float.neg = () => dd_neg(this);
+  bind Float.sqrt = () => dd_sqrt(this);
+  bind Float.abs = () => if this.hi < lift(zero) { dd_neg(this) } else { this };
+  bind Float.eq = (r) => dd_eq(this, r);
+  bind Float.ne = (r) => if dd_eq(this, r) { false } else { true };
+  bind Float.lt = (r) => dd_lt(this, r);
+  bind Float.gt = (r) => dd_lt(r, this);
+  bind Float.le = (r) => if dd_lt(r, this) { false } else { true };
+  bind Float.ge = (r) => if dd_lt(this, r) { false } else { true };
+  bind Float.trunc = () => dd_trunc(this);
+  bind Float.round = () => dd_round(this);
+  bind FloatList.push[Elem=Float] = (x) => {
+    this.his.push(x.hi);
+    this.los.push(x.lo);
+  };
+  bind FloatList.get[Elem=Float] = (i) => DD { hi = this.his.get(i), lo = this.los.get(i) };
+  bind FloatList.set[Elem=Float] = (i, x) => {
+    this.his.set(i, x.hi);
+    this.los.set(i, x.lo);
+  };
+  bind FloatList.length = () => this.his.length();
+}
