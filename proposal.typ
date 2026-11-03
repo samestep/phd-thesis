@@ -23,6 +23,8 @@
 
 ...
 
+#set heading(numbering: "1.")
+
 = Introduction
 
 PostgreSQL 11.22 (#cite(<postgresql2023>, form: "year")) returns zero for the following query @numacc4:
@@ -37,14 +39,20 @@ Why? Up until version 12, Postgres computed standard deviation by first computin
 
 #snippet("vendor/postgres/src/backend/utils/adt/float.c", from: 2942, to: 2947)
 
-This catastrophic cancellation is
-
-#quote(block: true, attribution: <simon1988>)[
-  the notorious desk top calculator algorithm, also known as the one-pass algorithm.
-]
+This bug was eventually discovered by a third-party domain expert @schubert2018bug who was searching for instances of this exact formula. This dependence on deep expertise is unfortunate, because in theory it's very simple to find these sorts of bugs; simply observe what happens when the program is run with higher precision:
 
 #quote(block: true, attribution: <kahan2006>)[
   Higher precision will very often estimate a "correct" path well enough. To this end, imagine a debugger that can transform a given subprogram p, whose literal constants and variables x, y, z,~... have been declared by the programmer to have precisions thought adequate at the time, into an analogous subprogram P whose corresponding literal constants and variables X, Y, Z,~... are declared by the debugger to have greater precisions, preferably about twice as great. Then the debugger can execute both programs p and P simultaneously (actually interleaved) with the same input (or copies of it if the subprogram will change it) and compare their progress to see where one of the variables x, y, z,~... first departs excessively from its analog X, Y, Z,~...~.
 ]
+
+But the reason we have to _imagine_ such a tool is because we would have to go out of our way to create it. The programming languages we use do not make it easy to perform such transformations unless one plan ahead and writes less straightforward code in the hope that it will pay off later. Of course, often it doesn't pay off. So often the smart thing to do is to avoid paying the cost of extra complexity by just writing the straightforward code in the first place.
+
+This document proposes a novel programming language design which we call _ambient polymorphism_, with the thesis that *the cost of writing flexible programs can be drastically reduced by decoupling polymorphism from dataflow*. @completed describes the language design and current implementation. @proposed sketches out a plan for evaluation. @related situates this work within the body of relevant research literature.
+
+= Completed work <completed>
+
+= Proposed work <proposed>
+
+= Related work <related>
 
 #bibliography("refs.yml", style: "chicago-author-date")
