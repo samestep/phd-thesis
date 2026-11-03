@@ -49,3 +49,13 @@ simon1989:
     title: Computational Statistics & Data Analysis
     volume: 8
     issue: 3
+
+strd1999:
+  type: reference
+  title: "Statistical Reference Datasets, {NIST} Standard Reference Database 140"
+  author:
+    name: National Institute of Standards and Technology
+  date: 1999
+  serial-number:
+    doi: 10.18434/T43G6C
+  url: https://www.itl.nist.gov/div898/strd/
