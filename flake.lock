@@ -33,6 +33,24 @@
         "type": "github"
       }
     },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "flatcalc": {
       "flake": false,
       "locked": {
@@ -168,6 +186,27 @@
         "type": "github"
       }
     },
+    "nix-github-actions": {
+      "inputs": {
+        "nixpkgs": [
+          "oxcaml",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1737420293,
+        "narHash": "sha256-F1G5ifvqTpJq7fdkT34e/Jy9VCyzd5XfJ9TO8fHhJWE=",
+        "owner": "nix-community",
+        "repo": "nix-github-actions",
+        "rev": "f4158fa080ef4503c8f4c820967d946c2af31ec9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nix-github-actions",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1792116957,
@@ -184,6 +223,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1786943417,
+        "narHash": "sha256-b4qgjdFtlz5TAZ1Hi7DFJeqX3sjaDUnrwr9OO+O1rM0=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0dd31db7e6dbf9ce05697c4545f6fe01accec994",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0dd31db7e6dbf9ce05697c4545f6fe01accec994",
+        "type": "github"
+      }
+    },
     "ocaml-modular-implicits": {
       "flake": false,
       "locked": {
@@ -197,6 +252,26 @@
       "original": {
         "owner": "ocamllabs",
         "repo": "ocaml-modular-implicits",
+        "type": "github"
+      }
+    },
+    "oxcaml": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nix-github-actions": "nix-github-actions",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1793705773,
+        "narHash": "sha256-Rs4GNOIMeX+0gcZcFNWp23miLVnpQL0FbLHvLqzxsjg=",
+        "owner": "oxcaml",
+        "repo": "oxcaml",
+        "rev": "8bdc85b3b6c18b10106f8bf3742d6a02a3f16e93",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxcaml",
+        "repo": "oxcaml",
         "type": "github"
       }
     },
@@ -262,6 +337,7 @@
         "moss": "moss",
         "nixpkgs": "nixpkgs",
         "ocaml-modular-implicits": "ocaml-modular-implicits",
+        "oxcaml": "oxcaml",
         "roc-basic-cli": "roc-basic-cli",
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",
@@ -288,6 +364,21 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
         "type": "github"
       }
     },

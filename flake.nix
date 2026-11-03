@@ -45,6 +45,9 @@
       url = "file+https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br";
       flake = false;
     };
+    # Jane Street's OCaml fork, from its own flake, with its own nixpkgs, so
+    # the build is exactly theirs.
+    oxcaml.url = "github:oxcaml/oxcaml";
     ocaml-modular-implicits = {
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
