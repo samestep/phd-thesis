@@ -121,7 +121,8 @@
       h(1em)
       box(width: 1fr, line.body)
     }
-    block(fill: luma(96%), inset: 8pt, radius: 3pt, width: 100%, {
+    // Its numbers start 4pt in, as a diff's do.
+    block(fill: luma(96%), inset: (left: 4pt, rest: 8pt), radius: 3pt, width: 100%, {
       if label != none {
         place(top + right, dy: -4pt, dx: 4pt, aside(label))
       }
@@ -223,7 +224,7 @@
     // A name sits with room around it in its corner, as a snippet's does.
     let name(body, ..span) = table.cell(
       ..span,
-      inset: (top: 5pt, right: 6pt, bottom: 2pt, left: 4pt),
+      inset: (top: 5pt, right: 6pt, bottom: 5pt, left: 4pt),
       align(right, text(size: 0.8em, aside(body))),
     )
     let header = if split {
