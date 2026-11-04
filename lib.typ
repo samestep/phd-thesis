@@ -491,50 +491,56 @@
   degree: [Doctor of Philosophy in Software Engineering],
   committee: (),
   copyright: true,
-) = page(numbering: none, align(center, {
-  v(1fr)
-  text(1.2em)[Thesis Proposal]
-  v(0.6em)
-  text(1.8em, weight: "bold", title)
-  v(2em)
-  text(1.2em, author)
-  v(1.2em)
-  department.join(linebreak())
-  if date != none {
-    v(1.2em)
-    date.display("[month repr:long] [year]")
-  }
-  v(2em)
-  emph[Submitted in partial fulfillment of the requirements \ for the degree of #degree.]
-  if committee.len() > 0 {
-    v(2em)
-    strong[Thesis Committee]
+) = {
+  page(numbering: none, align(center, {
+    v(1fr)
+    text(1.2em)[Thesis Proposal]
     v(0.6em)
-    grid(
-      columns: if committee.len() == 1 { 1 } else { 2 },
-      column-gutter: 3em,
-      row-gutter: 1.2em,
-      ..committee.map(((name, affiliation)) => {
-        name
-        if affiliation != none {
-          linebreak()
-          text(0.85em, affiliation)
-        }
-      }),
-    )
-  }
-  v(2fr)
-  if copyright and date != none {
-    text(0.85em)[Copyright © #date.year() #author]
-  }
-}))
+    text(1.8em, weight: "bold", title)
+    v(2em)
+    text(1.2em, author)
+    v(1.2em)
+    department.join(linebreak())
+    if date != none {
+      v(1.2em)
+      date.display("[month repr:long] [year]")
+    }
+    v(2em)
+    emph[Submitted in partial fulfillment of the requirements \ for the degree of #degree.]
+    if committee.len() > 0 {
+      v(2em)
+      strong[Thesis Committee]
+      v(0.6em)
+      grid(
+        columns: if committee.len() == 1 { 1 } else { 2 },
+        column-gutter: 3em,
+        row-gutter: 1.2em,
+        ..committee.map(((name, affiliation)) => {
+          name
+          if affiliation != none {
+            linebreak()
+            text(0.85em, affiliation)
+          }
+        }),
+      )
+    }
+    v(2fr)
+    if copyright and date != none {
+      text(0.85em)[Copyright © #date.year() #author]
+    }
+  }))
+  // The page after is numbered 1, as with LaTeX's `titlepage`.
+  counter(page).update(1)
+}
 
 // A citation naming the authors in the running text, as natbib's `\citet`.
 #let citet(key) = cite(key, form: "prose")
 
-// The document's styling, as `#show: style`: Moss highlighting, `listings`
-// for code, and block quotes set off by a grey rule on the left.
+// The document's styling, as `#show: style`: page numbers, Moss
+// highlighting, `listings` for code, and block quotes set off by a grey
+// rule on the left.
 #let style(doc) = {
+  set page(numbering: "1")
   set raw(syntaxes: "syntaxes/moss.sublime-syntax")
   show quote.where(block: true): it => block(
     width: 100%,
