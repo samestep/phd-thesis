@@ -313,19 +313,12 @@
             '';
           }
           // lib.filterAttrs (_: drv: drv != null) (lib.listToAttrs (map example examples));
-          devShells.default = pkgs.mkShellNoCC {
-            packages = [
-              pkgs.typst
-              pkgs.typstyle
-              mossPkg
-            ];
-          };
         }
       );
     in
     # `perSystem` is keyed by system first; flake outputs are keyed by
     # output first.
-    lib.genAttrs [ "packages" "checks" "devShells" ] (
+    lib.genAttrs [ "packages" "checks" ] (
       output: lib.mapAttrs (_: outputs: outputs.${output}) perSystem
     );
 }
