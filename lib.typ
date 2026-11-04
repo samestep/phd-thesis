@@ -72,25 +72,55 @@
   if from != none {
     let head = 0
     (start, head) = if type(from) == int {
-      assert(1 <= from and from <= lines.len(), message: "line " + str(from) + " is not in " + path)
+      assert(
+        1 <= from and from <= lines.len(),
+        message: "line " + str(from) + " is not in " + path,
+      )
       (from - 1, from - 1)
     } else {
       let parts = from.split("\n")
       let matches = range(lines.len() - parts.len() + 1).filter(i => {
         parts.enumerate().all(((k, part)) => lines.at(i + k).contains(part))
       })
-      assert(matches.len() == 1, message: "`" + from + "` is on " + str(matches.len()) + " lines of " + path + ", not one")
+      assert(
+        matches.len() == 1,
+        message: "`"
+          + from
+          + "` is on "
+          + str(matches.len())
+          + " lines of "
+          + path
+          + ", not one",
+      )
       // The item starts on the line `from`'s last part is on.
       (matches.first(), matches.first() + parts.len() - 1)
     }
     let last = if through != none { through } else { to }
     if last != none {
       let found = if type(last) == int {
-        assert(head < last and last <= lines.len(), message: "line " + str(last) + " is not after line " + str(head + 1) + " in " + path)
+        assert(
+          head < last and last <= lines.len(),
+          message: "line "
+            + str(last)
+            + " is not after line "
+            + str(head + 1)
+            + " in "
+            + path,
+        )
         last - 1
       } else {
-        let after = range(head, lines.len()).filter(i => lines.at(i).contains(last))
-        assert(after.len() > 0, message: "no `" + last + "` after line " + str(head + 1) + " in " + path)
+        let after = range(head, lines.len()).filter(i => lines
+          .at(i)
+          .contains(last))
+        assert(
+          after.len() > 0,
+          message: "no `"
+            + last
+            + "` after line "
+            + str(head + 1)
+            + " in "
+            + path,
+        )
         after.first()
       }
       end = if through != none { item-end(lines, found) } else { found }
@@ -98,7 +128,13 @@
       end = item-end(lines, head)
     }
     if comments {
-      while start > 0 and comment-prefixes.any(p => lines.at(start - 1).trim().starts-with(p)) {
+      while (
+        start > 0
+          and comment-prefixes.any(p => lines
+            .at(start - 1)
+            .trim()
+            .starts-with(p))
+      ) {
         start -= 1
       }
     }
@@ -108,9 +144,15 @@
 
 // The lines, all shifted left as far as the least indented allows.
 #let dedent(..groups) = {
-  let indents = groups.pos().flatten().filter(line => line.trim() != "").map(indent-of)
+  let indents = groups
+    .pos()
+    .flatten()
+    .filter(line => line.trim() != "")
+    .map(indent-of)
   let indent = if indents.len() == 0 { 0 } else { calc.min(..indents) }
-  groups.pos().map(lines => lines.map(line => line.slice(calc.min(indent, line.len()))))
+  groups
+    .pos()
+    .map(lines => lines.map(line => line.slice(calc.min(indent, line.len()))))
 }
 
 // The name `path` is labelled by, checked against every other file shown.
@@ -118,20 +160,38 @@
   let name = path.split("/").last()
   context {
     let earlier = shown.get().at(name, default: path)
-    assert(earlier == path, message: "`" + name + "` names both " + earlier + " and " + path)
+    assert(
+      earlier == path,
+      message: "`" + name + "` names both " + earlier + " and " + path,
+    )
   }
   shown.update(names => names + ((name): path))
   name
 }
 
-#let language(path, lang) = if lang == auto { path.split(".").last() } else { lang }
+#let language(path, lang) = if lang == auto { path.split(".").last() } else {
+  lang
+}
 
 // A line of code as a diff shows it: inline raw text, labelled so that
 // `listings` doesn't set it on a panel as it does inline code in prose.
 #let code-line(text, lang) = [#raw(text, lang: lang)<code-line>]
 
-#let snippet(path, from: none, through: none, to: none, comments: false, lang: auto) = {
-  let (start, body) = select(path, from: from, through: through, to: to, comments: comments)
+#let snippet(
+  path,
+  from: none,
+  through: none,
+  to: none,
+  comments: false,
+  lang: auto,
+) = {
+  let (start, body) = select(
+    path,
+    from: from,
+    through: through,
+    to: to,
+    comments: comments,
+  )
   let (body,) = dedent(body)
   let name = record(path)
   first-line.update(start + 1)
@@ -146,13 +206,20 @@
 // from one, in the top-right corner, both small and grey. Each line's body
 // is boxed in the rest of the width, so a line too long for it wraps under
 // itself rather than under the numbers.
-#let aside(body) = text(font: "DejaVu Sans Mono", size: 0.7em, fill: luma(55%), body)
+#let aside(body) = text(
+  font: "DejaVu Sans Mono",
+  size: 0.7em,
+  fill: luma(55%),
+  body,
+)
 
 #let listings(doc) = {
   // Tabs as wide as PostgreSQL's C is aligned for (Typst's default is 2).
   set raw(tab-size: 4)
   // Inline code in prose sits on a small panel like a snippet's.
-  show raw.where(block: false): it => if it.at("label", default: none) == <code-line> {
+  show raw.where(block: false): it => if (
+    it.at("label", default: none) == <code-line>
+  ) {
     it
   } else {
     box(fill: luma(96%), inset: (x: 2pt), outset: (y: 2.5pt), radius: 2pt, it)
@@ -167,12 +234,18 @@
       box(width: 1fr, line.body)
     }
     // Its numbers start 4pt in, as a diff's do.
-    block(fill: luma(96%), inset: (left: 4pt, rest: 8pt), radius: 3pt, width: 100%, {
-      if label != none {
-        place(top + right, dy: -4pt, dx: 4pt, aside(label))
-      }
-      it
-    })
+    block(
+      fill: luma(96%),
+      inset: (left: 4pt, rest: 8pt),
+      radius: 3pt,
+      width: 100%,
+      {
+        if label != none {
+          place(top + right, dy: -4pt, dx: 4pt, aside(label))
+        }
+        it
+      },
+    )
   }
   doc
 }
@@ -187,7 +260,11 @@
 // `split: true` or `split: false` chooses.
 #let diff(old, new, split: auto, lang: auto) = {
   let side(spec) = {
-    let named = spec.keys().filter(k => k != "path").map(k => (k, spec.at(k))).to-dict()
+    let named = spec
+      .keys()
+      .filter(k => k != "path")
+      .map(k => (k, spec.at(k)))
+      .to-dict()
     select(spec.path, ..named)
   }
   let (a-start, a) = side(old)
@@ -215,17 +292,28 @@
     let (i, j) = (0, 0)
     let (gone, came) = ((), ())
     let changes(gone, came) = if split {
-      range(calc.max(gone.len(), came.len())).map(k => (false, gone.at(k, default: none), came.at(k, default: none)))
+      range(calc.max(gone.len(), came.len())).map(k => (
+        false,
+        gone.at(k, default: none),
+        came.at(k, default: none),
+      ))
     } else {
       gone.map(k => (false, k, none)) + came.map(k => (false, none, k))
     }
     while i < a.len() or j < b.len() {
-      if i < a.len() and j < b.len() and a.at(i).trim(at: end) == b.at(j).trim(at: end) {
+      if (
+        i < a.len()
+          and j < b.len()
+          and a.at(i).trim(at: end) == b.at(j).trim(at: end)
+      ) {
         rows += changes(gone, came)
         (gone, came) = ((), ())
         rows.push((true, i, j))
         (i, j) = (i + 1, j + 1)
-      } else if j < b.len() and (i == a.len() or lcs.at(i).at(j + 1) >= lcs.at(i + 1).at(j)) {
+      } else if (
+        j < b.len()
+          and (i == a.len() or lcs.at(i).at(j + 1) >= lcs.at(i + 1).at(j))
+      ) {
         came.push(j)
         j += 1
       } else {
@@ -240,17 +328,28 @@
     let absent = luma(91%)
     // Numbers at the size `listings` sets them, inside code: the size of
     // raw text, which Typst sets at 0.8em.
-    let number(start, k) = if k == none { [] } else { align(right, text(size: 0.8em, aside(str(start + k + 1)))) }
+    let number(start, k) = if k == none { [] } else {
+      align(right, text(size: 0.8em, aside(str(start + k + 1))))
+    }
     // A line too long for its column wraps under its own indentation.
     let code(lines, k) = if k == none { [] } else {
       let line = lines.at(k)
-      context par(leading: 0.4em, hanging-indent: (indent-of(line) + 2) * measure(code-line(" ", lang)).width, code-line(line, lang))
+      context par(
+        leading: 0.4em,
+        hanging-indent: (indent-of(line) + 2)
+          * measure(code-line(" ", lang)).width,
+        code-line(line, lang),
+      )
     }
     let cells = ()
     for (kept, k, l) in rows {
       if split {
-        let left = if k == none { absent } else if kept { kept-fill } else { removed }
-        let right = if l == none { absent } else if kept { kept-fill } else { added }
+        let left = if k == none { absent } else if kept { kept-fill } else {
+          removed
+        }
+        let right = if l == none { absent } else if kept { kept-fill } else {
+          added
+        }
         cells += (
           table.cell(fill: left, number(a-start, k)),
           table.cell(fill: left, code(a, k)),
@@ -258,11 +357,15 @@
           table.cell(fill: right, code(b, l)),
         )
       } else {
-        let fill = if kept { kept-fill } else if l == none { removed } else { added }
+        let fill = if kept { kept-fill } else if l == none { removed } else {
+          added
+        }
         cells += (
           table.cell(fill: fill, number(a-start, k)),
           table.cell(fill: fill, number(b-start, l)),
-          table.cell(fill: fill, if l == none { code(a, k) } else { code(b, l) }),
+          table.cell(fill: fill, if l == none { code(a, k) } else {
+            code(b, l)
+          }),
         )
       }
     }
@@ -282,7 +385,9 @@
     // No panel around it: the rows' colours run to the edges of the text.
     // Clipped to a snippet's rounded corners.
     block(radius: 3pt, clip: true, table(
-      columns: if split { (auto, left-weight * 1fr, auto, right-weight * 1fr) } else { (auto, auto, 1fr) },
+      columns: if split {
+        (auto, left-weight * 1fr, auto, right-weight * 1fr)
+      } else { (auto, auto, 1fr) },
       stroke: none,
       fill: kept-fill,
       inset: (x: 4pt, y: 2pt),
@@ -290,7 +395,11 @@
       ..cells,
       // Room below the last line, in the panel's grey whatever that line
       // is, as a snippet has below its own.
-      table.cell(colspan: if split { 4 } else { 3 }, inset: (top: 6pt, rest: 0pt), []),
+      table.cell(
+        colspan: if split { 4 } else { 3 },
+        inset: (top: 6pt, rest: 0pt),
+        [],
+      ),
     ))
   }
   // Side by side, each side gets as much of the width as its widest line
@@ -299,8 +408,13 @@
   // what each needs, and wrap alike.
   layout(size => {
     let inset = 8pt
-    let widest(lines) = calc.max(0pt, ..lines.map(line => measure(code-line(line, lang)).width)) + inset
-    let numbers(start, lines) = measure(text(size: 0.8em, aside(str(start + lines.len())))).width + inset
+    let widest(lines) = (
+      calc.max(0pt, ..lines.map(line => measure(code-line(line, lang)).width))
+        + inset
+    )
+    let numbers(start, lines) = (
+      measure(text(size: 0.8em, aside(str(start + lines.len())))).width + inset
+    )
     let (need-a, need-b) = (widest(a), widest(b))
     let room = size.width - numbers(a-start, a) - numbers(b-start, b)
     let fits = need-a + need-b <= room
@@ -321,7 +435,11 @@
   set par(justify: false)
   // Terminals as plain monospace text, rather than on the panel that
   // `listings` gives inline code in prose.
-  show raw.where(block: false): it => text(font: "DejaVu Sans Mono", size: 0.9em, it.text)
+  show raw.where(block: false): it => text(
+    font: "DejaVu Sans Mono",
+    size: 0.9em,
+    it.text,
+  )
   grid(
     columns: 4,
     column-gutter: 0.6em,
@@ -333,7 +451,9 @@
         .enumerate()
         .map(((i, alts)) => {
           let alts = alts.join(h(0.4em) + $|$ + h(0.4em))
-          if i == 0 { (text(style: "italic", name), var, $::=$, alts) } else { ([], [], $|$, alts) }
+          if i == 0 { (text(style: "italic", name), var, $::=$, alts) } else {
+            ([], [], $|$, alts)
+          }
         })
         .flatten())
       .flatten(),

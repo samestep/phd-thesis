@@ -246,6 +246,14 @@
           };
           checks = {
             pdf = self.packages.${system}.default;
+            # Typst has no formatter of its own; this is typstyle's default
+            # style. (Tinymist formats with typstyle, but at 120 columns
+            # unless `tinymist.formatterPrintWidth` is set to 80.)
+            typstyle = pkgs.runCommand "check-typstyle" { nativeBuildInputs = [ pkgs.typstyle ]; } ''
+              cd ${./.}
+              typstyle --check *.typ
+              touch $out
+            '';
             moss-syntax = pkgs.runCommand "check-moss-syntax" { } ''
               if ! diff -u ${./syntaxes/moss.sublime-syntax} ${mossSyntax}; then
                 echo 'syntaxes/moss.sublime-syntax is out of date; regenerate it with:'
@@ -308,6 +316,7 @@
           devShells.default = pkgs.mkShellNoCC {
             packages = [
               pkgs.typst
+              pkgs.typstyle
               mossPkg
             ];
           };
