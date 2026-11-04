@@ -51,7 +51,15 @@ This document proposes a novel programming language design which we call _ambien
 
 = Completed work <completed>
 
-#snippet("examples/moss/shadow/context/main.moss", from: "fn sd(")
+#figure(
+  placement: auto,
+  snippet("examples/moss/shadow/context/main.moss", from: "fn sd("),
+  caption: [The numerically unstable one-pass algorithm for computing standard deviation, implemented in Moss.],
+) <stddev-moss>
+
+== Language design
+
+@stddev-moss shows a translation of the Postgres `stddev` code into Moss. This example shows the basics of Moss syntax, which is fairly unremarkable.
 
 = Proposed work <proposed>
 
