@@ -382,6 +382,8 @@
         "roc-linux-arm64": "roc-linux-arm64",
         "roc-linux-x86_64": "roc-linux-x86_64",
         "roc-macos-arm64": "roc-macos-arm64",
+        "types-node": "types-node",
+        "undici-types": "undici-types",
         "virgil": "virgil",
         "wyvern": "wyvern"
       }
@@ -420,6 +422,32 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
+      }
+    },
+    "types-node": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791571340,
+        "narHash": "sha256-TBxzrJq2iFd8sVkR7uXSsLNmWNeY5O19fvpK1Aipehg=",
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@types/node/-/node-24.19.2.tgz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/@types/node/-/node-24.19.2.tgz"
+      }
+    },
+    "undici-types": {
+      "flake": false,
+      "locked": {
+        "lastModified": 499162500,
+        "narHash": "sha256-8kk6imMKqG/HVYrnOxQ0CUR+jZamm2pvXBTrvjHDEZ4=",
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/undici-types/-/undici-types-7.24.6.tgz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://registry.npmjs.org/undici-types/-/undici-types-7.24.6.tgz"
       }
     },
     "virgil": {

@@ -55,6 +55,16 @@
       url = "tarball+https://static.crates.io/crates/bumpalo/bumpalo-3.20.3.crate";
       flake = false;
     };
+    # Node's own type declarations, and the `undici-types` they import, for
+    # the TypeScript examples: Nixpkgs has neither.
+    types-node = {
+      url = "tarball+https://registry.npmjs.org/@types/node/-/node-24.19.2.tgz";
+      flake = false;
+    };
+    undici-types = {
+      url = "tarball+https://registry.npmjs.org/undici-types/-/undici-types-7.24.6.tgz";
+      flake = false;
+    };
     ocaml-modular-implicits = {
       url = "github:ocamllabs/ocaml-modular-implicits";
       flake = false;
