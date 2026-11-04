@@ -51,6 +51,8 @@ This document proposes a novel programming language design which we call _ambien
 
 = Completed work <completed>
 
+#snippet("examples/moss/shadow/context/main.moss", from: "fn sd(")
+
 = Proposed work <proposed>
 
 = Related work <related>
