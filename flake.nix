@@ -254,6 +254,11 @@
               typstyle --check *.typ
               touch $out
             '';
+            nixfmt = pkgs.runCommand "check-nixfmt" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
+              cd ${./.}
+              find . -name '*.nix' -exec nixfmt --check {} +
+              touch $out
+            '';
             moss-syntax = pkgs.runCommand "check-moss-syntax" { } ''
               if ! diff -u ${./syntaxes/moss.sublime-syntax} ${mossSyntax}; then
                 echo 'syntaxes/moss.sublime-syntax is out of date; regenerate it with:'
@@ -278,11 +283,13 @@
             # The `shadow` example runs the `rerun` example's routines
             # under Kahan's harness, unchanged: its copies of them must
             # stay the same code.
-            shadow-routines = pkgs.runCommand "check-shadow-routines" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-              python3 ${./vendor/flatcalc/verbatim.py} ${./examples/moss/rerun/context/main.moss} \
-                ${./examples/moss/shadow/context/stddev.moss} 'fn readings(' 'fn stddev(' 'fn show(' 'fn report('
-              touch $out
-            '';
+            shadow-routines =
+              pkgs.runCommand "check-shadow-routines" { nativeBuildInputs = [ pkgs.python3 ]; }
+                ''
+                  python3 ${./vendor/flatcalc/verbatim.py} ${./examples/moss/rerun/context/main.moss} \
+                    ${./examples/moss/shadow/context/stddev.moss} 'fn readings(' 'fn stddev(' 'fn show(' 'fn report('
+                  touch $out
+                '';
             # PostgreSQL 11.22 computes the standard deviation of NIST's
             # NumAcc4 data, certified 0.1, as exactly zero.
             numacc4 =
