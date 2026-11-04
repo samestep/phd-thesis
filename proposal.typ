@@ -53,7 +53,7 @@ This document proposes a novel programming language design which we call _ambien
 
 #figure(
   placement: auto,
-  snippet("examples/moss/shadow/context/main.moss", from: "fn sd("),
+  snippet("examples/moss/shadow/context/stddev.moss", from: "fn stddev("),
   caption: [The numerically unstable one-pass algorithm for computing standard deviation, implemented in Moss.],
 ) <stddev-moss>
 

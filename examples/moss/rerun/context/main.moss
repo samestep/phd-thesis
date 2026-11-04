@@ -8,7 +8,7 @@ import "../../common.moss" use print_line;
 import "../../doubledouble.moss" use DoubleDouble, widen_all;
 
 # Rerunning a subprogram in twice the precision by rebinding `Float` for
-# one block. `readings` and `sd` are ordinary code against `Std`, with no
+# one block. `readings` and `stddev` are ordinary code against `Std`, with no
 # type parameters, no wrapped literals and no element types, and
 # `{ bind DoubleDouble; ... }` compiles them again, specialized, with every
 # `Float` they make (literals, accumulators, the list) a double-double:
@@ -35,7 +35,7 @@ assume Std {
 
   # The schoolbook one-pass formula, as PostgreSQL's `stddev` computed
   # it until version 12, clamp included.
-  fn sd(xs: Array[Item=Float]): Float {
+  fn stddev(xs: Array[Item=Float]): Float {
     var n = 0.0;
     var sum = 0.0;
     var sum_sq = 0.0;
@@ -50,7 +50,7 @@ assume Std {
 
   fn show(sd: Float) { print_line((sd * 1000000000.0).round()); }
 
-  fn report() { show(sd(readings())); }
+  fn report() { show(stddev(readings())); }
 }
 
 assume Wasm, Wasi, Branch {
@@ -60,7 +60,7 @@ assume Wasm, Wasi, Branch {
     let xs = readings();
     {
       bind DoubleDouble;
-      show(sd(widen_all(xs)));
+      show(stddev(widen_all(xs)));
     }
     {
       bind DoubleDouble;

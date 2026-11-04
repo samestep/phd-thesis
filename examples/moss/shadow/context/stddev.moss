@@ -8,7 +8,7 @@ import "../../common.moss" use print_line;
 import "../../shadow.moss" use Shadow, tolerance;
 
 # Kahan's harness (shadow.moss) around the rerun example's `readings`,
-# `sd`, `show` and `report`, copied unchanged from
+# `stddev`, `show` and `report`, copied unchanged from
 # examples/moss/rerun/context/main.moss: p in f64 and P in double-double,
 # side by side, with P following p's branches. Then two benign inputs of
 # the same shape, which should draw no report.
@@ -27,7 +27,7 @@ assume Std {
 
   # The schoolbook one-pass formula, as PostgreSQL's `stddev` computed
   # it until version 12, clamp included.
-  fn sd(xs: Array[Item=Float]): Float {
+  fn stddev(xs: Array[Item=Float]): Float {
     var n = 0.0;
     var sum = 0.0;
     var sum_sq = 0.0;
@@ -42,10 +42,10 @@ assume Std {
 
   fn show(sd: Float) { print_line((sd * 1000000000.0).round()); }
 
-  fn report() { show(sd(readings())); }
+  fn report() { show(stddev(readings())); }
 }
 
-# Not from the example: benign inputs for the same `sd`.
+# Not from the example: benign inputs for the same `stddev`.
 assume Std {
   # NumAcc4's shape, centred near 0: 0.2, then 0.1 and 0.3 in turn.
   fn centred(): Array[Item=Float] {
@@ -75,9 +75,9 @@ assume Wasm, Wasi, Branch {
     bind WasiStd;
     # How far P may stray from p, relative, before the harness says so.
     bind tolerance = 1e-9;
-    report();                                 # p alone
-    { bind Shadow; report(); }                # p and P: NumAcc4
-    { bind Shadow; show(sd(centred())); }     # p and P: benign
-    { bind Shadow; show(sd(small())); }
+    report();                                     # p alone
+    { bind Shadow; report(); }                    # p and P: NumAcc4
+    { bind Shadow; show(stddev(centred())); }     # p and P: benign
+    { bind Shadow; show(stddev(small())); }
   }
 }
