@@ -1,4 +1,5 @@
-import "access.moss" use .get, .length, .push;
+import "access.moss" use .get, .set, .length;
+import "array.moss" use Item, Array, .arrayed;
 import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm;
@@ -14,12 +15,11 @@ import "../../shadow.moss" use Shadow, tolerance;
 
 assume Std {
   # NIST StRD NumAcc4: 10000000.2, then 10000000.1 and 10000000.3 in turn.
-  fn readings(): FloatList {
-    let xs = float_list();
-    xs.push(10000000.2);
+  fn readings(): Array[Item=Float] {
+    let xs = 10000000.2.arrayed(1001.size());
     var i = 1;
     while i < 1001 {
-      if i % 2 == 1 { xs.push(10000000.1); } else { xs.push(10000000.3); }
+      if i % 2 == 1 { xs.set(i.size(), 10000000.1); } else { xs.set(i.size(), 10000000.3); }
       i = i + 1;
     }
     xs
@@ -27,17 +27,14 @@ assume Std {
 
   # The schoolbook one-pass formula, as PostgreSQL's `stddev` computed
   # it until version 12, clamp included.
-  fn sd(xs: FloatList): Float {
+  fn sd(xs: Array[Item=Float]): Float {
     var n = 0.0;
     var sum = 0.0;
     var sum_sq = 0.0;
-    var i = 0;
-    while i < xs.length() {
-      let x = xs.get(i);
+    for x in xs {
       n = n + 1.0;
       sum = sum + x;
       sum_sq = sum_sq + x * x;
-      i = i + 1;
     }
     let numerator = n * sum_sq - sum * sum;
     if numerator <= 0.0 { 0.0 } else { (numerator / (n * (n - 1.0))).sqrt() }
@@ -51,24 +48,22 @@ assume Std {
 # Not from the example: benign inputs for the same `sd`.
 assume Std {
   # NumAcc4's shape, centred near 0: 0.2, then 0.1 and 0.3 in turn.
-  fn centred(): FloatList {
-    let xs = float_list();
-    xs.push(0.2);
+  fn centred(): Array[Item=Float] {
+    let xs = 0.2.arrayed(1001.size());
     var i = 1;
     while i < 1001 {
-      if i % 2 == 1 { xs.push(0.1); } else { xs.push(0.3); }
+      if i % 2 == 1 { xs.set(i.size(), 0.1); } else { xs.set(i.size(), 0.3); }
       i = i + 1;
     }
     xs
   }
 
   # Small integers in the same shape: 2, then 1 and 3 in turn.
-  fn small(): FloatList {
-    let xs = float_list();
-    xs.push(2.0);
+  fn small(): Array[Item=Float] {
+    let xs = 2.0.arrayed(1001.size());
     var i = 1;
     while i < 1001 {
-      if i % 2 == 1 { xs.push(1.0); } else { xs.push(3.0); }
+      if i % 2 == 1 { xs.set(i.size(), 1.0); } else { xs.set(i.size(), 3.0); }
       i = i + 1;
     }
     xs

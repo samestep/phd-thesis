@@ -1,32 +1,33 @@
-import "access.moss" use Elem;
+import "access.moss" use Elem, Index, .set;
+import "array.moss" use Item, Array, .arrayed;
 import "wasi.moss" use WasiStd;
-import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl, SingleLayout, Packed, packed;
+import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl;
 import "wasm.moss" as w use Wasm;
 import "wasip1.moss" use Wasi;
 import "../../common.moss" use print_int;
 
-# How numbers are stored, separately from how they are computed: a list of
-# the stored type, and how a `Float` becomes one and back.
+# How numbers are stored, separately from how they are computed: an array
+# of the stored type, and how a `Float` becomes one and back.
 type Stored;
 type Store;
 
 assume Std, Stored, Store {
-  fn store(): Store;
+  fn store(n: Int): Store;
   fn narrow(x: Float): Stored;
   fn widen(x: Stored): Float;
   context Storage =
     Stored, Store, store, narrow, widen,
-    Store.push[Elem=Stored], Store.get[Elem=Stored];
+    Store.set[Elem=Stored, Index=Int], Store.get[Elem=Stored, Index=Int];
 }
 
 # Written once, against `Float` and `Storage`, with no layer naming either:
-# fill a list with `n` copies of 0.1, then sum it.
+# fill an array with `n` copies of 0.1, then sum it.
 assume Std, Storage {
   fn fill(n: Int): Store {
-    let xs = store();
+    let xs = store(n);
     var i = 0;
     while i < n {
-      xs.push(narrow(0.1));
+      xs.set(i, narrow(0.1));
       i = i + 1;
     }
     xs
@@ -55,11 +56,11 @@ assume Std, Storage {
 assume Wasm, Wasi, Branch {
   fn main() {
     bind WasiStd;
-    # Compute in f64, store in f64: a list of `Float`.
+    # Compute in f64, store in f64: an array of `Float`.
     {
       bind Stored = Float;
-      bind Store = FloatList;
-      bind store = float_list;
+      bind Store = Array[Item=Float];
+      bind store = (n) => 0.0.arrayed(n);
       bind narrow = (x) => x;
       bind widen = (x) => x;
       report(1000000);
@@ -67,21 +68,18 @@ assume Wasm, Wasi, Branch {
     # Compute in f64, store in f32: half the memory.
     {
       bind Stored = Single;
-      bind SingleLayout;
-      bind Store = Packed;
-      bind store = packed;
-      bind Store.push[Elem=Stored] = Packed.push;
-      bind Store.get[Elem=Stored] = Packed.get;
+      bind Store = Array[Item=Single];
       bind narrow = (x) => Single(w::f32_demote_f64(dbl(x)));
       bind widen = (x) => Double(w::f64_promote_f32(sgl(x)));
+      bind store = (n) => narrow(0.0).arrayed(n);
       report(1000000);
     }
     # Compute in f32, store in f32.
     {
       bind WasiFloats32;
       bind Stored = Float;
-      bind Store = FloatList;
-      bind store = float_list;
+      bind Store = Array[Item=Float];
+      bind store = (n) => 0.0.arrayed(n);
       bind narrow = (x) => x;
       bind widen = (x) => x;
       report(1000000);

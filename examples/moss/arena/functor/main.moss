@@ -37,9 +37,8 @@ assume Char, Numerics, Containers {
   }
 }
 
-assume Wasm, Wasi, Branch, Arenas {
+assume Std, Wasm, Wasi, Branch, Arenas {
   fn report() {
-    bind WasiStd;
     let starts = int_list();
     starts.push(6);
     starts.push(7);
@@ -65,6 +64,7 @@ assume Wasm, Wasi, Branch, Arenas {
 
 assume Wasm, Wasi, Branch {
   fn main() {
+    bind WasiStd;
     bind ScratchArena;
     report();
   }

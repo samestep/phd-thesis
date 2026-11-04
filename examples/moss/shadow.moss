@@ -20,15 +20,15 @@
 # so a report says which one. Each kind of report is made at most once
 # per application. Over the base `Float` only: P is double-double.
 
-import "access.moss" use Elem, .get, .set, .length, .push;
+import "access.moss" use Elem, Index, .get, .set, .length, .push;
 import "char.moss" use Char, .char;
 import "int.moss" use Int, IntOps, zero, one;
 import "bool.moss" use Bool, true, false;
 import "list.moss" use IntList, int_list;
 import "std.moss" use Std, putchar;
 import "float.moss" use Float, Floats;
-import "./doubledouble.moss" use Base, BaseList, lift, base_list, BaseOps,
-  DD, DDList, widen, dd_add, dd_neg, dd_mul, dd_div, dd_sqrt, dd_lt, dd_eq,
+import "./doubledouble.moss" use Base, lift, BaseOps,
+  DD, widen, dd_add, dd_neg, dd_mul, dd_div, dd_sqrt, dd_lt, dd_eq,
   dd_round, dd_trunc;
 
 # How far P may stray, relative: bound by whoever applies `Shadow`, in
@@ -57,8 +57,8 @@ assume Int, Base {
 
 context Out =
   Bool, true, false, Bool.xor, Int, zero, one, IntOps, Char, putchar, Int.char,
-  IntList, int_list, IntList.push[Elem=Int], IntList.get[Elem=Int],
-  IntList.set[Elem=Int], IntList.length;
+  IntList, int_list, IntList.push[Elem=Int], IntList.get[Elem=Int, Index=Int],
+  IntList.set[Elem=Int, Index=Int], IntList.length[Index=Int];
 
 # Printing, without string literals (D5): a character by its ASCII code,
 # and a word of up to six lowercase letters packed into an Int, base 32,
@@ -161,7 +161,6 @@ assume Out, BaseOps, tol, state {
 
 assume Int, zero, one, IntOps, Bool, true, false, Bool.xor, BaseOps, note {
   tag Sh { x: Base, X: DD };
-  tag ShList { xs: BaseList, Xs: DDList };
 
   # |x - X| / |X|, with x - X in double-double so the difference is P's
   # to the last bit; 0 if both are 0, infinite if only X is.
@@ -227,8 +226,6 @@ assume Int, zero, one, IntOps, Bool, true, false, Bool.xor, BaseOps, note {
 functor Shadow: Std, tolerance -> Floats {
   bind Base = Float;
   bind lift = float;
-  bind BaseList = FloatList;
-  bind base_list = float_list;
   bind tol = tolerance;
   bind state = {
     let s = int_list();
@@ -238,8 +235,6 @@ functor Shadow: Std, tolerance -> Floats {
   bind note = shadow_note;
   bind Float = Sh;
   bind float = sh_of;
-  bind FloatList = ShList;
-  bind float_list = () => ShList { xs = base_list(), Xs = DDList { his = base_list(), los = base_list() } };
   bind Float.add = (r) => sh_add(this, r);
   bind Float.sub = (r) => sh_sub(this, r);
   bind Float.mul = (r) => sh_mul(this, r);
@@ -255,19 +250,4 @@ functor Shadow: Std, tolerance -> Floats {
   bind Float.ge = (r) => sh_ge(this, r);
   bind Float.trunc = () => sh_trunc(this);
   bind Float.round = () => sh_round(this);
-  bind FloatList.push[Elem=Float] = (v) => {
-    this.xs.push(v.x);
-    this.Xs.his.push(v.X.hi);
-    this.Xs.los.push(v.X.lo);
-  };
-  bind FloatList.get[Elem=Float] = (i) => Sh {
-    x = this.xs.get(i),
-    X = DD { hi = this.Xs.his.get(i), lo = this.Xs.los.get(i) },
-  };
-  bind FloatList.set[Elem=Float] = (i, v) => {
-    this.xs.set(i, v.x);
-    this.Xs.his.set(i, v.X.hi);
-    this.Xs.los.set(i, v.X.lo);
-  };
-  bind FloatList.length = () => this.xs.length();
 }

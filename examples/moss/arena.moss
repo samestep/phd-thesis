@@ -25,8 +25,11 @@ assume Wasm {
 
 # Applying `Arena` gives you a fresh arena: each `bind Arena;` resets
 # its memory, and makes a new `Memory` with new containers in it, so
-# nothing allocated there can leave the block that applied it.
-functor Arena: Wasm, Branch, scratch_base -> Memory, Containers, fresh;
+# nothing allocated there can leave the block that applied it. It lists
+# no polymorphic inputs (D84, draft): it is fixed in the `Int` and `Char`
+# its containers mention, which `InScratch` pins to the library's, so it
+# is bound where they are in force, after `WasiStd`.
+functor Arena[]: Wasm, Branch, scratch_base -> Memory, Containers, fresh;
 
 # The arena in `Scratch`, reset as it is applied.
 functor InScratch: Wasm, Branch, scratch_base -> Memory, Containers, fresh {

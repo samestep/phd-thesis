@@ -10,43 +10,46 @@
 # long division by three quotients). Dekker's split assumes the base is
 # binary64 (2^27 + 1), and nothing here handles overflow.
 
-import "access.moss" use Elem, .get, .set, .length, .push;
+import "access.moss" use Elem, .get, .set, .length;
+import "array.moss" use Item, Array, ArrayHandle, Arrays, .arrayed;
 import "float.moss" use Floats;
+import "size.moss" use Size;
 
 type Base;
-type BaseList;
 
 assume Int, Base {
   fn lift(n: Int): Base;
-  assume BaseList {
-    fn base_list(): BaseList;
-    context BaseOps =
-      Base, lift,
-      Base.add, Base.sub, Base.mul, Base.div, Base.neg, Base.sqrt, Base.abs,
-      Base.eq, Base.ne, Base.lt, Base.gt, Base.le, Base.ge, Base.trunc, Base.round,
-      BaseList, base_list,
-      BaseList.push[Elem=Base], BaseList.get[Elem=Base], BaseList.set[Elem=Base], BaseList.length,
-    ;
-  }
+  context BaseOps =
+    Base, lift,
+    Base.add, Base.sub, Base.mul, Base.div, Base.neg, Base.sqrt, Base.abs,
+    Base.eq, Base.ne, Base.lt, Base.gt, Base.le, Base.ge, Base.trunc, Base.round,
+  ;
 }
 
 assume Int, zero, one, Int.add, Int.sub, Int.mul, Int.lt, BaseOps {
   tag DD { hi: Base, lo: Base };
-  # A list of them as two packed lists of the base.
-  tag DDList { his: BaseList, los: BaseList };
 
-  # A base float, or a list of them, as double-doubles, exactly: for
-  # values made outside the block that applied `DoubleDouble`.
+  # A base float as a double-double, exactly: for values made outside
+  # the block that applied `DoubleDouble`.
   fn widen(x: Base): DD { DD { hi = x, lo = lift(zero) } }
-  fn widen_all(xs: BaseList): DDList {
-    let ys = DDList { his = base_list(), los = base_list() };
-    var i = 0;
-    while i < xs.length() {
-      ys.his.push(xs.get(i));
-      ys.los.push(lift(zero));
-      i = i + 1;
+
+  # And an array of them. No array code of its own: an array of `DD` is
+  # whatever the array implementation in force makes of one (two f64
+  # arrays, under GC), provided where `Float` is bound to `DD`. It reads
+  # `xs` by iterating, and writes `ys` at an index it counts in `Int`
+  # and converts (`i.size()`), since arrays are indexed by `Size`.
+  context Widening = ArrayHandle, Size, Int.size, Arrays;
+
+  assume Widening {
+    fn widen_all(xs: Array[Item=Base]): Array[Item=DD] {
+      let ys = widen(lift(zero)).arrayed(xs.length());
+      var i = 0;
+      for x in xs {
+        ys.set(i.size(), widen(x));
+        i = i + 1;
+      }
+      ys
     }
-    ys
   }
 
   fn quick_two_sum(s: Base, e: Base): DD {
@@ -134,15 +137,13 @@ assume Int, zero, one, Int.add, Int.sub, Int.mul, Int.lt, BaseOps {
 }
 
 # All of `Floats` at double-double over the `Float` in force.
+# Its arrays need no line: they are `Std`'s `Arrays` at `Item=DD`, on
+# demand (D84 rule 7).
 functor DoubleDouble: Std -> Floats {
   bind Base = Float;
   bind lift = float;
-  bind BaseList = FloatList;
-  bind base_list = float_list;
   bind Float = DD;
   bind float = (n) => widen(lift(n));
-  bind FloatList = DDList;
-  bind float_list = () => DDList { his = base_list(), los = base_list() };
   bind Float.add = (r) => dd_add(this, r);
   bind Float.sub = (r) => dd_add(this, dd_neg(r));
   bind Float.mul = (r) => dd_mul(this, r);
@@ -158,14 +159,4 @@ functor DoubleDouble: Std -> Floats {
   bind Float.ge = (r) => if dd_lt(this, r) { false } else { true };
   bind Float.trunc = () => dd_trunc(this);
   bind Float.round = () => dd_round(this);
-  bind FloatList.push[Elem=Float] = (x) => {
-    this.his.push(x.hi);
-    this.los.push(x.lo);
-  };
-  bind FloatList.get[Elem=Float] = (i) => DD { hi = this.his.get(i), lo = this.los.get(i) };
-  bind FloatList.set[Elem=Float] = (i, x) => {
-    this.his.set(i, x.hi);
-    this.los.set(i, x.lo);
-  };
-  bind FloatList.length = () => this.his.length();
 }
