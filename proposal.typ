@@ -1,17 +1,6 @@
-#import "lib.typ": bnf, diff, listings, opt, seq, snippet, title-page
+#import "lib.typ": bnf, citet, diff, opt, seq, snippet, style, title-page
 
-#set raw(syntaxes: "syntaxes/moss.sublime-syntax")
-
-#show: listings
-
-#show quote.where(block: true): it => block(
-  width: 100%,
-  stroke: (left: 2pt + luma(75%)),
-  outset: (left: -0.4em, y: 0.5em),
-  it,
-)
-
-#let citet(key) = cite(key, form: "prose")
+#show: style
 
 #title-page(
   title: [Ambient Polymorphism],

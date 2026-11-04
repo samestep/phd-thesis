@@ -1,5 +1,6 @@
 // The proposal's own library: `snippet`, `diff` and `listings` for code,
-// `bnf` for grammars, and `title-page`.
+// `bnf` for grammars, `title-page`, `citet`, and `style` for the whole
+// document.
 //
 // `snippet` shows code from `examples/`, which `nix flake check` runs, numbered as
 // the lines are numbered in the file and labelled with the file's name.
@@ -527,3 +528,20 @@
     text(0.85em)[Copyright © #date.year() #author]
   }
 }))
+
+// A citation naming the authors in the running text, as natbib's `\citet`.
+#let citet(key) = cite(key, form: "prose")
+
+// The document's styling, as `#show: style`: Moss highlighting, `listings`
+// for code, and block quotes set off by a grey rule on the left.
+#let style(doc) = {
+  set raw(syntaxes: "syntaxes/moss.sublime-syntax")
+  show quote.where(block: true): it => block(
+    width: 100%,
+    stroke: (left: 2pt + luma(75%)),
+    outset: (left: -0.4em, y: 0.5em),
+    it,
+  )
+  show: listings
+  doc
+}
