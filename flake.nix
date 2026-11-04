@@ -140,7 +140,7 @@
           # flake's `inputs` (for sources nixpkgs doesn't have), and `moss`.
           # A `run` names the file it runs as `$main`: the example's `main.*`,
           # or else its one file, for an example the proposal shows, whose
-          # name is its label there (see `snippet.typ`).
+          # name is its label there (see `snippet` in `lib.typ`).
           # It may also list `shared` files, paths under `examples/<language>`
           # that its examples import: they are copied in beside the example
           # where they sit in the repository, so a relative import reaches

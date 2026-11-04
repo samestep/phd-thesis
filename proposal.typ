@@ -1,4 +1,4 @@
-#import "snippet.typ": diff, listings, snippet
+#import "lib.typ": bnf, diff, listings, opt, seq, snippet
 
 #set raw(syntaxes: "syntaxes/moss.sublime-syntax")
 
@@ -57,9 +57,66 @@ This document proposes a novel programming language design which we call _ambien
   caption: [The numerically unstable one-pass algorithm for computing standard deviation, implemented in Moss.],
 ) <stddev-moss>
 
+#figure(
+  placement: auto,
+  kind: image,
+  bnf(
+    ([File], $F$, ([#seq[$m$] #seq[$d$]],)),
+    ([Import], $m$, ([`import` _str_ #opt[`as` $x$] #opt[`use *` $|$ `use` #seq[$u$]]`;`],)),
+    ([Use], $u$, ($x$, [$x$ `as` $x$], [`.`$x$], [`.`$x$ `as .`$x$])),
+    ([Path], $p$, ($x$, [$p$`::`$x$])),
+    ([Head], $h$, ($p$, [$p$`.`$x$], [`.`$x$])),
+    ([Spec], $s$, ($h$, [$h$`[`#seq[$p$` = `$s$]`]`])),
+    ([Reference], $r$, ($p$, [$p$`[`#seq[$p$` = `$s$]`]`])),
+    ([Type], $tau$, (
+      $r$,
+      `This`,
+      `()`,
+      [`(`$tau$`)`],
+      [`{`#seq[$x$`: `$tau$]`}`],
+      [$tau$` | `$tau$],
+      `|`,
+    )),
+    (
+      [Declaration],
+      $d$,
+      ([`assume` #seq[$h$]` {`#seq[$d$]`}`],),
+      ([`type` $x$`;`], [`type` $x$` = `$tau$`;`], [`val` $x$`: `$tau$ #opt[`= `$e$]`;`]),
+      ([`tag` $x$`;`], [`tag` $x$#opt[`[`#seq[$x$]`]`]`(`$tau$`);`], [`tag` $x$#opt[`[`#seq[$x$]`]`]`{`#seq[$x$`: `$tau$]`};`]),
+      ([`fn` $f$`(`#seq[$x$`: `$tau$]`)`#opt[`: `$tau$]`;`], [`fn` $f$`(`#seq[$x$`: `$tau$]`)`#opt[`: `$tau$] $b$]),
+      ([`context` $x$` = `#seq[$s$]`;`],),
+      ([`functor` $x$#opt[`[`#seq[$x$]`]`]`: `#seq[$s$]` -> `#seq[$s$]`;`],),
+      ([`functor` $x$`: `#seq[$s$]` -> `#seq[$s$]` {`#seq[$w$]`}`],),
+    ),
+    ([Function], $f$, ($x$, [$x$`.`$x$], [`.`$x$])),
+    ([Block], $b$, ([`{`#seq[$i$] #opt[$e$]`}`],)),
+    (
+      [Statement],
+      $i$,
+      ([`let` $x$#opt[`: `$tau$]` = `$e$`;`], [`var` $x$#opt[`: `$tau$]` = `$e$`;`], [$x$` = `$e$`;`], $w$),
+      ([`while` $e$ $b$], [`loop` $b$], [`for` $x$ `in` $e$ $b$], [$e$`;`], [$e$]),
+    ),
+    ([Bind], $w$, ([`bind` #seq[$beta$]`;`],)),
+    ([Binding], $beta$, ($s$, [$s$` = `$e$], [$s$` = (`#seq[$x$#opt[`: `$tau$]]`)`#opt[`: `$tau$]` => `$e$])),
+    (
+      [Expression],
+      $e$,
+      ($c$, [`match` $e$` {`#seq[$a$]`}`], [`return` #opt[$e$]], `break`),
+      ([$e$`.`$p$`(`#seq[$e$]`)`], [$e$`.`$x$], [$e$ $plus.o$ $e$], [$minus.o$$e$], [`(`$e$`)`], `()`, `this`, $b$),
+      ([_int_], [_dec_], $r$, [$r$`(`#seq[$e$]`)`], [$r$`{`#seq[$x$ #opt[`= `$e$]]`}`]),
+    ),
+    ([Binary], $plus.o$, (`*`, `/`, `%`, `+`, `-`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `<<`, `>>`, `&`, `^`, `|`)),
+    ([Unary], $minus.o$, (`-`, `!`)),
+    ([Conditional], $c$, ([`if` $e$ $b$ #opt[`else` $b$ $|$ `else` $c$]],)),
+    ([Arm], $a$, ([$pi$` => `$e$`,`], [$pi$` => `$b$ #opt[`,`]])),
+    ([Pattern], $pi$, (`_`, $p$, [$p$`(`$pi$`)`], [`{`#seq[$x$ #opt[`= `$pi$]]`}`], [$p$`{`#seq[$x$ #opt[`= `$pi$]]`}`])),
+  ),
+  caption: [The grammar of Moss. Here $x$ ranges over names, and _str_, _int_ and _dec_ over string, integer and decimal literals; $(X)^?$ marks an optional $X$, and $overline(X)$ a possibly empty sequence of $X$, separated by commas (with an optional trailing comma) unless $X$ is an import, declaration, statement, bind or arm. A bare `|` is the uninhabited type. An expression statement may omit its `;` only if it ends in `}`.],
+) <grammar>
+
 == Language design
 
-@stddev-moss shows a translation of the Postgres `stddev` code into Moss. This example shows the basics of Moss syntax, which is fairly unremarkable.
+@stddev-moss shows a translation of the Postgres `stddev` code into Moss. This example shows the basics of Moss syntax, which is fairly unremarkable. @grammar gives its grammar.
 
 = Proposed work <proposed>
 

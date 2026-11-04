@@ -18,7 +18,7 @@ let
     root = ./.;
     fileset = lib.fileset.unions [
       ./proposal.typ
-      ./snippet.typ
+      ./lib.typ
       ./refs.yml
       ./syntaxes/moss.sublime-syntax
       ./examples

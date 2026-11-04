@@ -3,7 +3,7 @@
 Usage: verbatim.py THEIRS OURS ANCHOR...
 
 Each ANCHOR is text on exactly one line of THEIRS, where an item starts.
-The item runs, as `snippet.typ` takes it, from that line through the
+The item runs, as `snippet` in `lib.typ` takes it, from that line through the
 first later line indented no deeper (included if it is at the same depth
 and closes a bracket). Its code must appear in OURS, compared without
 comments, attributes, whitespace, or a trailing comma before a closing

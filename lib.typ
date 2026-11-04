@@ -1,4 +1,7 @@
-// Shows code from `examples/`, which `nix flake check` runs, numbered as
+// The proposal's own library: `snippet`, `diff` and `listings` for code,
+// and `bnf` for grammars.
+//
+// `snippet` shows code from `examples/`, which `nix flake check` runs, numbered as
 // the lines are numbered in the file and labelled with the file's name.
 //
 // Without `from`, the whole file. With `from`, the one line containing
@@ -310,3 +313,39 @@
     render(if split == auto { fits } else { split }, left / 1pt, right / 1pt)
   })
 }
+
+// A grammar, one rule per entry: its name, its metavariable, and its
+// alternatives. Each alternative is an array of pieces written on one
+// line, separated by `|`; each further alternative starts a new line.
+#let bnf(..rules) = {
+  set par(justify: false)
+  // Terminals as plain monospace text, rather than on the panel that
+  // `listings` gives inline code in prose.
+  show raw.where(block: false): it => text(font: "DejaVu Sans Mono", size: 0.9em, it.text)
+  grid(
+    columns: 4,
+    column-gutter: 0.6em,
+    row-gutter: 0.65em,
+    align: (left, right, center, left),
+    ..rules
+      .pos()
+      .map(((name, var, ..lines)) => lines
+        .enumerate()
+        .map(((i, alts)) => {
+          let alts = alts.join(h(0.4em) + $|$ + h(0.4em))
+          if i == 0 { (text(style: "italic", name), var, $::=$, alts) } else { ([], [], $|$, alts) }
+        })
+        .flatten())
+      .flatten(),
+  )
+}
+
+// An optional part of an alternative in `bnf`, in grey parentheses that
+// are the grammar's own rather than the language's.
+#let opt(body) = {
+  let paren(c) = text(fill: luma(50%), c)
+  $paren(\() #body paren(\))^?$
+}
+
+// A sequence of what's under the line, in `bnf`, which may be empty.
+#let seq(body) = $overline(#body)$
