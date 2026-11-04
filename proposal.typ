@@ -1,4 +1,4 @@
-#import "lib.typ": bnf, diff, listings, opt, seq, snippet
+#import "lib.typ": bnf, diff, listings, opt, seq, snippet, title-page
 
 #set raw(syntaxes: "syntaxes/moss.sublime-syntax")
 
@@ -13,11 +13,11 @@
 
 #let citet(key) = cite(key, form: "prose")
 
-#align(center)[
-  = Ambient Polymorphism
-
-  Sam Estep
-]
+#title-page(
+  title: [Ambient Polymorphism],
+  author: [Sam Estep],
+  committee: (([Joshua Sunshine, Chair], [Carnegie Mellon University]),),
+)
 
 == Abstract
 

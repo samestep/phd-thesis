@@ -1,5 +1,5 @@
 // The proposal's own library: `snippet`, `diff` and `listings` for code,
-// and `bnf` for grammars.
+// `bnf` for grammars, and `title-page`.
 //
 // `snippet` shows code from `examples/`, which `nix flake check` runs, numbered as
 // the lines are numbered in the file and labelled with the file's name.
@@ -469,3 +469,61 @@
 
 // A sequence of what's under the line, in `bnf`, which may be empty.
 #let seq(body) = $overline(#body)$
+
+// The title page conventional for a CMU SCS thesis proposal, as the old
+// `cmuthesis.cls` lays it out, on a page of its own: `committee` is an
+// array of `(name, affiliation)` pairs, with a role like "Chair" written
+// into the name, in two columns; a single member's affiliation can be
+// `none`, and with no members at all the heading is left out too. The
+// `date` (a `datetime`) is optional; without one, neither it nor the
+// copyright line, which needs its year, is shown.
+#let title-page(
+  title: none,
+  author: none,
+  date: none,
+  department: (
+    [Software and Societal Systems Department],
+    [School of Computer Science],
+    [Carnegie Mellon University],
+    [Pittsburgh, PA 15213],
+  ),
+  degree: [Doctor of Philosophy in Software Engineering],
+  committee: (),
+  copyright: true,
+) = page(numbering: none, align(center, {
+  v(1fr)
+  text(1.2em)[Thesis Proposal]
+  v(0.6em)
+  text(1.8em, weight: "bold", title)
+  v(2em)
+  text(1.2em, author)
+  v(1.2em)
+  department.join(linebreak())
+  if date != none {
+    v(1.2em)
+    date.display("[month repr:long] [year]")
+  }
+  v(2em)
+  emph[Submitted in partial fulfillment of the requirements \ for the degree of #degree.]
+  if committee.len() > 0 {
+    v(2em)
+    strong[Thesis Committee]
+    v(0.6em)
+    grid(
+      columns: if committee.len() == 1 { 1 } else { 2 },
+      column-gutter: 3em,
+      row-gutter: 1.2em,
+      ..committee.map(((name, affiliation)) => {
+        name
+        if affiliation != none {
+          linebreak()
+          text(0.85em, affiliation)
+        }
+      }),
+    )
+  }
+  v(2fr)
+  if copyright and date != none {
+    text(0.85em)[Copyright © #date.year() #author]
+  }
+}))
