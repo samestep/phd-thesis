@@ -58,7 +58,7 @@ This document proposes a novel programming language design which we call _ambien
     ),
     ([Use], $u$, ($x$, [$x$ `as` $x$], [`.`$x$], [`.`$x$ `as .`$x$])),
     ([Path], $p$, ($x$, [$p$`::`$x$])),
-    ([Head], $h$, ($p$, [$p$`.`$x$], [`.`$x$])),
+    ([Head], $h$, ($p$, [$p$`.`$x$])),
     ([Spec], $s$, ($h$, [$h$`[`#seq[$p$` = `$s$]`]`])),
     ([Reference], $r$, ($p$, [$p$`[`#seq[$p$` = `$s$]`]`])),
     (
@@ -122,7 +122,6 @@ This document proposes a novel programming language design which we call _ambien
       (
         $s$,
         [$s$` = `$e$],
-        [$s$` = (`#seq[$x$#opt[`: `$tau$]]`)`#opt[`: `$tau$]` => `$e$],
       ),
     ),
     (
@@ -135,6 +134,7 @@ This document proposes a novel programming language design which we call _ambien
         [$e$ $plus.o$ $e$],
         [$minus.o$$e$],
         [`(`$e$`)`],
+        [`(`#seq[$x$#opt[`: `$tau$]]`)`#opt[`: `$tau$]` => `$e$],
         `()`,
         `this`,
         $b$,
@@ -184,7 +184,7 @@ This document proposes a novel programming language design which we call _ambien
       ),
     ),
   ),
-  caption: [The grammar of Moss. Here $x$ ranges over names, and _str_, _int_ and _dec_ over string, integer and decimal literals; $(X)^?$ marks an optional $X$, and $overline(X)$ a possibly empty sequence of $X$, separated by commas (with an optional trailing comma) unless $X$ is an import, declaration, statement, bind or arm. A bare `|` is the uninhabited type. An expression statement may omit its `;` only if it ends in `}`.],
+  caption: [The grammar of Moss. Here $x$ ranges over names, and _str_, _int_ and _dec_ over string, integer and decimal literals; $(X)^?$ marks an optional $X$, and $overline(X)$ a possibly empty sequence of $X$, separated by commas (with an optional trailing comma) unless $X$ is an import, declaration, statement, bind or arm. A bare `|` is the uninhabited type. An expression statement may omit its `;` only if it begins with `if`, `match` or a block, and the last arm of a `match` may omit its `,`. A comment runs from `#` to the end of the line; _int_ is a run of digits and _dec_ two runs joined by `.`, and either may end in an exponent: `e` or `E`, an optional sign, and digits.],
 ) <grammar>
 
 == Language design
