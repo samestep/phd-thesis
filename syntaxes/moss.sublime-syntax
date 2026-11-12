@@ -26,34 +26,34 @@ contexts:
     - match: $
       pop: true
   declarations:
-  - match: \b(type|tag)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(type|tag)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.moss
       2: entity.name.type.moss
-  - match: \b(context|functor)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(context|functor)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.moss
       2: entity.name.type.moss
-  - match: \b(fn)\s+(\.)([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(fn)\s+(\.)((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.function.moss
       2: punctuation.accessor.moss
       3: entity.name.function.moss
-  - match: \b(fn)\s+([A-Za-z_][A-Za-z0-9_]*)(\.)([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(fn)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)(\.)((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.function.moss
       2: entity.name.type.moss
       3: punctuation.accessor.moss
       4: entity.name.function.moss
-  - match: \b(fn)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(fn)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.function.moss
       2: entity.name.function.moss
-  - match: \b(val)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(val)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: storage.type.moss
       2: entity.name.constant.moss
-  - match: \b(import)\s+("(?:[^"\\]|\\["\\nrt])*")\s+(as)\s+([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b(import)\s+("(?:[^"\\]|\\["\\nrt])*")\s+(as)\s+((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: keyword.control.import.moss
       2: string.quoted.double.moss
@@ -62,7 +62,7 @@ contexts:
   keywords:
   - match: \b(if|else|match)\b
     scope: keyword.control.conditional.moss
-  - match: \b(while|loop)\b
+  - match: \b(while|loop|for|in)\b
     scope: keyword.control.repeat.moss
   - match: \b(return|break)\b
     scope: keyword.control.flow.moss
@@ -70,13 +70,18 @@ contexts:
     scope: keyword.control.import.moss
   - match: \b(assume|bind|context|fn|functor|let|tag|type|val|var)\b
     scope: storage.type.moss
-  - match: \bfor\b
-    scope: keyword.other.reserved.moss
   - match: \bThis\b
     scope: storage.type.builtin.moss
   - match: \bthis\b
     scope: variable.language.moss
   strings:
+  - match: "^[ \t]*(>)(?: |$)"
+    captures:
+      1: punctuation.definition.string.begin.moss
+    push:
+    - meta_scope: string.unquoted.raw.moss
+    - match: $
+      pop: true
   - match: '"'
     captures:
       0: punctuation.definition.string.begin.moss
@@ -96,25 +101,25 @@ contexts:
   - match: \b[0-9]+\b
     scope: constant.numeric.integer.moss
   methods:
-  - match: \b([A-Z][A-Za-z0-9_]*)(\.)([A-Za-z_][A-Za-z0-9_]*)
+  - match: \b([A-Z][A-Za-z0-9_]*)(\.)((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: entity.name.type.moss
       2: punctuation.accessor.moss
       3: entity.name.function.moss
-  - match: (?:(?<=[,=\[:>])|(?<=\buse)|^)\s*(\.)([A-Za-z_][A-Za-z0-9_]*)
+  - match: (?:(?<=[,=\[:>])|(?<=\buse)|^)\s*(\.)((?!_\b)[A-Za-z_][A-Za-z0-9_]*)
     captures:
       1: punctuation.accessor.moss
       2: entity.name.function.moss
   names:
   - match: \b_\b
     scope: constant.language.wildcard.moss
-  - match: \b[A-Za-z_][A-Za-z0-9_]*(?=::)
+  - match: \b(?!_\b)[A-Za-z_][A-Za-z0-9_]*(?=::)
     scope: entity.name.namespace.moss
-  - match: \b[A-Za-z_][A-Za-z0-9_]*(?=\s*\()
+  - match: \b(?!_\b)[A-Za-z_][A-Za-z0-9_]*(?=\s*\()
     scope: entity.name.function.moss
   - match: \b[A-Z][A-Za-z0-9_]*\b
     scope: entity.name.type.moss
-  - match: \b[A-Za-z_][A-Za-z0-9_]*\b
+  - match: \b(?!_\b)[A-Za-z_][A-Za-z0-9_]*\b
     scope: variable.other.moss
   punctuation:
   - match: ::|\.

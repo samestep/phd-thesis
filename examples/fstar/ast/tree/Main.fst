@@ -19,7 +19,7 @@ let rec interp (e : expr) : int =
     (match op with
      | Add -> l + r
      | Sub -> l - r
-     | Mul -> l `op_Multiply` r
+     | Mul -> l * r
      | Div -> quot l r)
   | Literal num -> num
 

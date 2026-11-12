@@ -56,7 +56,7 @@ assume Int, Base {
 }
 
 context Out =
-  Bool, true, false, Bool.xor, Int, zero, one, IntOps, Char, putchar, Int.char,
+  Bool.xor, Int, zero, one, IntOps, Char, putchar, Int.char,
   IntList, int_list, IntList.push[Elem=Int], IntList.get[Elem=Int, Index=Int],
   IntList.set[Elem=Int, Index=Int], IntList.length[Index=Int];
 
@@ -159,7 +159,7 @@ assume Out, BaseOps, tol, state {
   }
 }
 
-assume Int, zero, one, IntOps, Bool, true, false, Bool.xor, BaseOps, note {
+assume Int, zero, one, IntOps, Bool.xor, BaseOps, note {
   tag Sh { x: Base, X: DD };
 
   # |x - X| / |X|, with x - X in double-double so the difference is P's

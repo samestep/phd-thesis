@@ -163,7 +163,7 @@ functor Floating: Std -> Value, value, print_value {
 
 # Two ways to trace: not at all, and by printing each value.
 functor Quiet: Std, Value -> trace {
-  bind trace = (v) => {};
+  bind trace = (v) => ();
 }
 
 functor Loud: Std, Arith -> trace {

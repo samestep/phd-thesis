@@ -6,7 +6,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     effekt = {
-      url = "https://github.com/effekt-lang/effekt/releases/download/v0.82.0/effekt.tgz";
+      url = "https://github.com/effekt-lang/effekt/releases/download/v0.84.0/effekt.tgz";
       flake = false;
     };
     granule-linux-x86_64 = {
@@ -39,8 +39,8 @@
       url = "https://github.com/roc-lang/roc/releases/download/alpha4-rolling/roc-macos_apple_silicon-alpha4-rolling.tar.gz";
       flake = false;
     };
-    # The basic-cli platform release that goes with it, with prebuilt hosts
-    # for every target. It's a Brotli tarball, which Nix can't unpack.
+    # basic-cli 0.20.0 is the last release for the Rust compiler. Fetch its
+    # Brotli archive as a file and unpack it in the Roc checks.
     roc-basic-cli = {
       url = "file+https://github.com/roc-lang/basic-cli/releases/download/0.20.0/X73hGh05nNTkDHU06FHC0YfFaQB1pimX7gncRcao5mU.tar.br";
       flake = false;
@@ -58,11 +58,11 @@
     # Node's own type declarations, and the `undici-types` they import, for
     # the TypeScript examples: Nixpkgs has neither.
     types-node = {
-      url = "tarball+https://registry.npmjs.org/@types/node/-/node-24.19.2.tgz";
+      url = "tarball+https://registry.npmjs.org/@types/node/-/node-26.6.6.tgz";
       flake = false;
     };
     undici-types = {
-      url = "tarball+https://registry.npmjs.org/undici-types/-/undici-types-7.24.6.tgz";
+      url = "tarball+https://registry.npmjs.org/undici-types/-/undici-types-8.12.4.tgz";
       flake = false;
     };
     ocaml-modular-implicits = {

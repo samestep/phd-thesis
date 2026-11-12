@@ -31,7 +31,7 @@ let rec interp #pool #ref {| ast pool ref |} {| has_pool pool |} (fuel : nat) (e
     (match op with
      | Add -> l + r
      | Sub -> l - r
-     | Mul -> l `op_Multiply` r
+     | Mul -> l * r
      | Div -> quot l r)
   | Literal num -> num
 
@@ -79,7 +79,7 @@ instance triples_ast : ast triples slot = {
       | Literal num -> [0; num; 0] in
     (Triples (t @ row), Slot (length t / 3)));
   get = (fun (Triples t) (Slot i) ->
-    let cell (k : nat) = nth t (3 `op_Multiply` i + k) in
+    let cell (k : nat) = nth t (3 * i + k) in
     match cell 0 with
     | 0 -> Literal (cell 1)
     | op -> Binary (op_of op) (Slot (to_nat (cell 1))) (Slot (to_nat (cell 2))));
