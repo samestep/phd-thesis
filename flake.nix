@@ -52,7 +52,7 @@
     };
     # Bumpalo, for the Rust arena example: a `.crate` is a gzipped tarball.
     bumpalo = {
-      url = "tarball+https://static.crates.io/crates/bumpalo/bumpalo-3.20.3.crate";
+      url = "tarball+https://static.crates.io/crates/bumpalo/bumpalo-3.20.4.crate";
       flake = false;
     };
     # Node's own type declarations, and the `undici-types` they import, for
