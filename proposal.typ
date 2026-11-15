@@ -246,6 +246,8 @@ Even though this program is statically typed and does not explicitly define a ge
   caption: [Elaborated representation. $t$, $n$, $v$, $f$, $m$, and $u$ are type, tag, value, function, method, and functor symbols. $x$ is a local, $ell$ a field label, $a$ a platform operation name, and $i$ a natural number. $hat(t)$ is a rigid type generation and the empty union is uninhabited.],
 ) <syntax-elaborated>
 
+@syntax-elaborated gives the syntax of elaborated programs.
+
 = Proposed work <proposed>
 
 = Related work <related>
