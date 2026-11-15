@@ -521,6 +521,15 @@
 // A sequence of what's under the line, in `bnf`, which may be empty.
 #let seq(body) = $overline(#body)$
 
+// Zero or more repetitions of a part of a grammar rule.
+#let many(body) = $(#body)^*$
+
+// Alternatives grouped within a grammar rule.
+#let choice(..options) = {
+  let alternatives = options.pos().join(h(0.3em) + $|$ + h(0.3em))
+  $(#alternatives)$
+}
+
 // The title page conventional for a CMU SCS thesis proposal, as the old
 // `cmuthesis.cls` lays it out, on a page of its own: `committee` is an
 // array of `(name, affiliation)` pairs, with a role like "Chair" written

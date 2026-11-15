@@ -1,4 +1,6 @@
-#import "lib.typ": bnf, citet, diff, opt, seq, snippet, style, title-page
+#import "lib.typ": (
+  bnf, choice, citet, diff, many, opt, seq, snippet, style, title-page,
+)
 
 #show: style
 
@@ -72,61 +74,172 @@ Even though this program is statically typed and does not explicitly define a ge
 #figure(
   placement: top,
   kind: image,
-  bnf(
-    ([File], $F$, ([#seq[$m$] #seq[$d$]],)),
+  text(10pt, bnf(
+    ([File], $F$, ([#many[$m$] #many[$d$]],)),
     (
       [Import],
       $m$,
-      ([`import` _str_ #opt[`as` $x$] #opt[`use *` $|$ `use` #seq[$u$]]`;`],),
+      (
+        [`import` _quoted_ #opt[`as` $x$] #opt[`use *` $|$ `use` #seq[$u$]]`;`],
+      ),
     ),
     ([Use], $u$, ($x$, [$x$ `as` $x$], [`.`$x$], [`.`$x$ `as .`$x$])),
     ([Path], $p$, ($x$, [$p$`::`$x$])),
     ([Head], $h$, ($p$, [$p$`.`$x$])),
-    ([Spec], $s$, ($h$, [$h$`[`#seq[$p$` = `$s$]`]`])),
-    ([Reference], $r$, ($p$, [$p$`[`#seq[$p$` = `$s$]`]`])),
     (
-      [Type],
-      $tau$,
-      (
-        $r$,
-        `This`,
-        `()`,
-        [`(`$tau$`)`],
-        [`{`#seq[$x$`: `$tau$]`}`],
-        [$tau$` | `$tau$],
-        `|`,
-      ),
+      [Specification],
+      $s$,
+      ([#choice($h$, [`.`$x$])#opt[`[`#seq[$p$` = `$s$]`]`]],),
+    ),
+    ([Type reference], $r$, ([$p$#opt[`[`#seq[$p$` = `$s$]`]`]],)),
+    ([Assume item], $a$, ($h$, [$r$` = `$r$])),
+    ([Context item], $c$, ($s$, [$r$` = `$r$])),
+    ([Type], $tau$, ([`|`], [$t$#many[`|` $t$]])),
+    (
+      [Type atom],
+      $t$,
+      ($r$, `This`, `()`, [`(`$tau$`)`], [`{`#seq[$x$`: `$tau$]`}`]),
     ),
     (
       [Declaration],
       $d$,
-      ([`assume` #seq[$h$]` {`#seq[$d$]`}`],),
+      ([`assume` #seq[$a$]` {`#many[$d$]`}`], [`context` $x$` = `#seq[$c$]`;`]),
       (
         [`type` $x$`;`],
         [`type` $x$` = `$tau$`;`],
         [`val` $x$`: `$tau$ #opt[`= `$e$]`;`],
       ),
-      (
-        [`tag` $x$`;`],
-        [`tag` $x$#opt[`[`#seq[$x$]`]`]`(`$tau$`);`],
-        [`tag` $x$#opt[`[`#seq[$x$]`]`]`{`#seq[$x$`: `$tau$]`};`],
-      ),
-      (
-        [`fn` $f$`(`#seq[$x$`: `$tau$]`)`#opt[`: `$tau$]`;`],
-        [`fn` $f$`(`#seq[$x$`: `$tau$]`)`#opt[`: `$tau$] $b$],
-      ),
-      ([`context` $x$` = `#seq[$s$]`;`],),
+      ([`tag` $x$`;`], [`tag` $x$#opt[`[`#seq[$x$]`]`]`(`$tau$`);`]),
+      ([`fn` $f$`(`#seq[$x$`: `$tau$]`): `$tau$ #choice(`;`, $b$)],),
       ([`functor` $x$#opt[`[`#seq[$x$]`]`]`: `#seq[$s$]` -> `#seq[$s$]`;`],),
-      ([`functor` $x$`: `#seq[$s$]` -> `#seq[$s$]` {`#seq[$w$]`}`],),
+      ([`functor` $x$`: `#seq[$s$]` -> `#seq[$s$]` {`#many[$w$]`}`],),
     ),
-    ([Function], $f$, ($x$, [$x$`.`$x$], [`.`$x$])),
-    ([Block], $b$, ([`{`#seq[$i$] #opt[$e$]`}`],)),
+    ([Function name], $f$, ($x$, [$x$`.`$x$], [`.`$x$])),
+    ([Binding form], $j$, ([$x$#opt[`: `$tau$]],)),
+    ([Block], $b$, ([`{`#many[$i$] #opt[$e$]`}`],)),
+    (
+      [Statement],
+      $i$,
+      ([`let` $j$` = `$e$`;`], [`var` $j$` = `$e$`;`], [$x$` = `$e$`;`], $w$),
+      ([`while` $e$ $b$], [`loop` $b$], [$e$`;`]),
+    ),
+    ([Bind statement], $w$, ([`bind` $beta$`;`],)),
+    ([Bind item], $beta$, ($s$, [$s$` = `$e$])),
+    (
+      [Expression],
+      $e$,
+      (
+        [`match` $e$` {`#many[$A$]`}`],
+        [`return` $e$],
+        `break`,
+        [$P$#many[$S$]],
+      ),
+    ),
+    ([Suffix], $S$, ([`.`$x$], [`.`$p$`(`#seq[$e$]`)`])),
+    (
+      [Primary],
+      $P$,
+      (
+        `()`,
+        `this`,
+        $b$,
+        [`(`$e$`)`],
+        [`(`#seq[$j$]`)`#opt[`: `$tau$]` => `$e$],
+      ),
+      ($r$, [$r$`(`#seq[$e$]`)`], [`{`#seq[$x$` = `$e$]`}`]),
+    ),
+    ([Arm], $A$, ([$pi$` => `$e$`,`],)),
+    ([Pattern], $pi$, (`_`, $p$, [$p$`(`$pi$`)`], [`{`#seq[$x$` = `$pi$]`}`])),
+  )),
+  caption: [Core Moss abstract syntax (full syntax can be found in @syntax-full). $x$ ranges over names, including the fresh names introduced by desugaring, and _quoted_ is a quoted path. $(X)^?$ marks an optional part, $X^*$ denotes repetition, and $overline(X)$ is a comma-separated sequence. Brackets on a call in the core are type arguments to a tag constructor.],
+) <syntax>
+
+@syntax gives the abstract syntax.
+
+= Proposed work <proposed>
+
+= Related work <related>
+
+#bibliography("refs.yml", style: "chicago-author-date")
+
+#counter(heading).update(0)
+#set heading(numbering: "A.", supplement: [Appendix])
+
+= Full syntax
+
+#figure(
+  kind: image,
+  text(10pt, bnf(
+    ([File], $F$, ([#many[$m$] #many[$d$]],)),
+    (
+      [Import],
+      $m$,
+      (
+        [`import` _quoted_ #opt[`as` $x$] #opt[`use *` $|$ `use` #seq[$u$]]`;`],
+      ),
+    ),
+    ([Use], $u$, ($x$, [$x$ `as` $x$], [`.`$x$], [`.`$x$ `as .`$x$])),
+    ([Path], $p$, ($x$, [$p$`::`$x$])),
+    ([Head], $h$, ($p$, [$p$`.`$x$])),
+    (
+      [Specification],
+      $s$,
+      ([#choice($h$, [`.`$x$])#opt[`[`#seq[$p$` = `$s$]`]`]],),
+    ),
+    ([Type reference], $r$, ([$p$#opt[`[`#seq[$p$` = `$s$]`]`]],)),
+    ([Assume item], $a$, ($h$, [$r$` = `$r$])),
+    ([Context item], $c$, ($s$, [$r$` = `$r$])),
+    ([Type], $tau$, ([`|`], [#opt[`|`]$t$#many[`|` $t$]])),
+    (
+      [Type atom],
+      $t$,
+      (
+        $r$,
+        `This`,
+        `()`,
+        [`(`$tau$`)`],
+        [`(`$tau$`,` #seq[$tau$]`)`],
+        [`{`#seq[$x$`: `$tau$]`}`],
+      ),
+    ),
+    (
+      [Declaration],
+      $d$,
+      ([`assume` #seq[$a$]` {`#many[$d$]`}`], [`context` $x$` = `#seq[$c$]`;`]),
+      (
+        [`type` $x$`;`],
+        [`type` $x$` = `$tau$`;`],
+        [`val` $x$`: `$tau$ #opt[`= `$e$]`;`],
+      ),
+      ([`tag` $x$`;`], [`tag` $x$#opt[`[`#seq[$x$]`]`]`(`#seq[$tau$]`);`]),
+      ([`tag` $x$#opt[`[`#seq[$x$]`]`]`{`#seq[$x$`: `$tau$]`};`],),
+      ([`fn` $f$`(`#seq[$j$]`)`#opt[`: `$tau$] #choice(`;`, $b$)],),
+      ([`functor` $x$#opt[`[`#seq[$x$]`]`]`: `#seq[$s$]` -> `#seq[$s$]`;`],),
+      ([`functor` $x$`: `#seq[$s$]` -> `#seq[$s$]` {`#many[$w$]`}`],),
+    ),
+    ([Function name], $f$, ($x$, [$x$`.`$x$], [`.`$x$])),
+    (
+      [Binding form],
+      $j$,
+      ([$x$#opt[`: `$tau$]], [`(`$j$`)`#opt[`: `$tau$]], [`()`#opt[`: `$tau$]]),
+      (
+        [`(`$j$`,` #seq[$j$]`)`#opt[`: `$tau$]],
+        [`{`#seq[$k$]`}`#opt[`: `$tau$]],
+      ),
+      (
+        [$p$`(`#seq[$j$]`)`#opt[`: `$tau$]],
+        [$p$`{`#seq[$k$]`}`#opt[`: `$tau$]],
+      ),
+    ),
+    ([Binding field], $k$, ([$x$#opt[`: `$tau$]], [$x$` = `$j$])),
+    ([Local target], $l$, ($j$, [$j$`,` #seq[$j$]])),
+    ([Block], $b$, ([`{`#many[$i$] #opt[$e$]`}`],)),
     (
       [Statement],
       $i$,
       (
-        [`let` $x$#opt[`: `$tau$]` = `$e$`;`],
-        [`var` $x$#opt[`: `$tau$]` = `$e$`;`],
+        [`let` $l$` = `$e$`;`],
+        [`var` $l$` = `$e$`;`],
         [$x$ $alpha$ $e$`;`],
         $w$,
       ),
@@ -134,8 +247,7 @@ Even though this program is statically typed and does not explicitly define a ge
         [`while` $e$ $b$],
         [`loop` $b$],
         [`for` $x$ `in` $e$ $b$],
-        [$e$`;`],
-        [$e$],
+        [$e$#opt[`;`]],
       ),
     ),
     (
@@ -143,83 +255,59 @@ Even though this program is statically typed and does not explicitly define a ge
       $alpha$,
       (`=`, `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`),
     ),
-    ([Bind], $w$, ([`bind` #seq[$beta$]`;`],)),
-    (
-      [Binding],
-      $beta$,
-      (
-        $s$,
-        [$s$` = `$e$],
-      ),
-    ),
+    ([Bind statement], $w$, ([`bind` #seq[$beta$]`;`],)),
+    ([Bind item], $beta$, ($s$, [$s$` = `$e$])),
     (
       [Expression],
       $e$,
-      ($c$, [`match` $e$` {`#seq[$a$]`}`], [`return` #opt[$e$]], `break`),
+      ($C$, [`match` $e$` {`#many[$A$]`}`], [`return` #opt[$e$]], `break`, $g$),
+    ),
+    ([Conditional], $C$, ([`if` $e$ $b$ #opt[`else` $(b | C)$]],)),
+    (
+      [Operators],
+      $g$,
       (
-        [$e$`.`$p$`(`#seq[$e$]`)`],
-        [$e$`.`$x$],
-        [$e$ $plus.o$ $e$],
-        [$minus.o$$e$],
-        [`(`$e$`)`],
-        [`(`#seq[$x$#opt[`: `$tau$]]`)`#opt[`: `$tau$]` => `$e$],
-        `()`,
-        `this`,
-        $b$,
-      ),
-      (
-        [_int_],
-        [_dec_],
-        $r$,
-        [$r$`(`#seq[$e$]`)`],
-        [$p$`[`#seq[$beta$]`](`#seq[$e$]`)`],
-        [$r$`{`#seq[$x$ #opt[`= `$e$]]`}`],
+        [$o$#opt[$gamma$ $o$]],
+        [$v$ `&` $v$ #many[`&` $v$]],
+        [$v$ `^` $v$ #many[`^` $v$]],
+        [$v$ `|` $v$ #many[`|` $v$]],
       ),
     ),
     (
-      [Binary],
-      $plus.o$,
+      [Operand],
+      $o$,
+      ([$v$ #choice(`<<`, `>>`) $v$], [$z$ #many[#choice(`+`, `-`) $z$]]),
+    ),
+    ([Product], $z$, ([$v$ #many[`*` $v$] #opt[#choice(`/`, `%`) $v$]],)),
+    ([Comparison], $gamma$, (`==`, `!=`, `<`, `>`, `<=`, `>=`)),
+    ([Unary], $v$, ([#choice(`-`, `!`) $v$], [$P$#many[$S$]])),
+    ([Suffix], $S$, ([`.`$x$], [`.`$p$`(`#seq[$e$]`)`])),
+    (
+      [Primary],
+      $P$,
+      ([_int_], [_dec_], [_quoted_], [_raw_], `()`, `this`, $b$),
       (
-        `*`,
-        `/`,
-        `%`,
-        `+`,
-        `-`,
-        `==`,
-        `!=`,
-        `<`,
-        `>`,
-        `<=`,
-        `>=`,
-        `<<`,
-        `>>`,
-        `&`,
-        `^`,
-        `|`,
+        [`(`$e$`)`],
+        [`(`$e$`,` #seq[$e$]`)`],
+        [`(`#seq[$j$]`)`#opt[`: `$tau$]` => `$e$],
+      ),
+      (
+        $r$,
+        [$p$#opt[`[`#seq[$beta$]`]`]`(`#seq[$e$]`)`],
+        [#opt[$r$]`{`#seq[$x$ #opt[`= `$e$]]`}`],
       ),
     ),
-    ([Unary], $minus.o$, (`-`, `!`)),
-    ([Conditional], $c$, ([`if` $e$ $b$ #opt[`else` $b$ $|$ `else` $c$]],)),
-    ([Arm], $a$, ([$pi$` => `$e$`,`], [$pi$` => `$b$ #opt[`,`]])),
+    ([Arm], $A$, ([$pi$` => `$e$#opt[`,`]],)),
     (
       [Pattern],
       $pi$,
       (
         `_`,
         $p$,
-        [$p$`(`$pi$`)`],
-        [`{`#seq[$x$ #opt[`= `$pi$]]`}`],
-        [$p$`{`#seq[$x$ #opt[`= `$pi$]]`}`],
+        [$p$`(`#seq[$pi$]`)`],
+        [#opt[$p$]`{`#seq[$x$ #opt[`= `$pi$]]`}`],
       ),
     ),
-  ),
-  caption: [The grammar of Moss. Here $x$ ranges over names, and _str_, _int_ and _dec_ over string, integer and decimal literals; $(X)^?$ marks an optional $X$, and $overline(X)$ a possibly empty sequence of $X$, separated by commas (with an optional trailing comma) unless $X$ is an import, declaration, statement, bind or arm. A bare `|` is the uninhabited type. An expression statement may omit its `;` only if it begins with `if`, `match` or a block, and the last arm of a `match` may omit its `,`. A comment runs from `#` to the end of the line; _int_ is a run of digits and _dec_ two runs joined by `.`, and either may end in an exponent: `e` or `E`, an optional sign, and digits.],
-) <grammar>
-
-@grammar gives the abstract syntax of the Moss language.
-
-= Proposed work <proposed>
-
-= Related work <related>
-
-#bibliography("refs.yml", style: "chicago-author-date")
+  )),
+  caption: [Full syntax, expanded from @syntax. $x$ ranges over names, $(X)^?$ marks an optional part, and $X^*$ denotes repetition. $overline(X)$ is a possibly empty comma-separated sequence with an optional trailing comma.],
+) <syntax-full>
