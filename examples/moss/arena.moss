@@ -3,8 +3,7 @@ import "wasistd.moss" use Branch, Chr, Containers, WasiNumerics, WasiContainers,
 import "wasm.moss" use Wasm, Memory, I32;
 
 # An arena in a second linear memory: what the other languages' arena
-# examples get from their standard libraries or crates. Imported by a
-# relative path, so the examples' `check.nix` lists it as `shared`.
+# examples get from their standard libraries or crates.
 #
 # Guaranteed: nothing made in the arena outlives the block that applied
 # `Arena`. Letting it out (as the block's value, assigned to an outer

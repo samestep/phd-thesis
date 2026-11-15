@@ -1,0 +1,35 @@
+import "./doubledouble.moss" use DoubleDouble;
+
+assume Std {
+  fn readings(): Array[Item=Float] {
+    array::tabulate[
+      Item = Float,
+      array::element = (k) =>
+        if k == 1 { 10000000.2 }
+        else if k % 2 == 0 { 10000000.1 }
+        else { 10000000.3 },
+    ](1, 1001)
+  }
+
+  fn stddev(xs: Array[Item=Float]): Float {
+    var n = 0.0;
+    var sum = 0.0;
+    var sum_sq = 0.0;
+    for x in xs {
+      n = n + 1.0;
+      sum = sum + x;
+      sum_sq = sum_sq + x * x;
+    }
+    let numerator = n * sum_sq - sum * sum;
+    if numerator <= 0.0 { return 0.0; }
+    (numerator / (n * (n - 1.0))).sqrt()
+  }
+}
+
+assume ReferenceBase {
+  fn main() {
+    bind StdBase;
+    let result = stddev(readings());
+    println(format_float(result));
+  }
+}

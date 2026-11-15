@@ -2,8 +2,7 @@
 # two floats of the `Float` in force where `DoubleDouble` is applied,
 # with `|lo|` at most half an ulp of `hi`, so about twice its precision
 # (106 bits over f64). What the other languages' examples get from QD,
-# DoubleFloats or their own few dozen lines. Imported by a relative path,
-# so the examples' `check.nix` lists it as `shared`.
+# DoubleFloats or their own few dozen lines.
 #
 # TwoSum (Knuth) and Dekker's TwoProd are exact; add, multiply, divide
 # and square root are the usual ones (QD's `ieee_add`, Dekker's product,

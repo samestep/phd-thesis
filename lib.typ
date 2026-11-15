@@ -389,6 +389,8 @@
       columns: if split {
         (auto, left-weight * 1fr, auto, right-weight * 1fr)
       } else { (auto, auto, 1fr) },
+      // Code keeps its own alignment inside centered figures.
+      align: left,
       stroke: none,
       fill: kept-fill,
       inset: (x: 4pt, y: 2pt),

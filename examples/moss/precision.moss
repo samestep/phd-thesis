@@ -4,7 +4,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch, WasiFloats32, Double, Single, dbl, sgl;
 import "wasm.moss" as w use Wasm;
 import "wasip1.moss" use Wasi;
-import "../../common.moss" use print_int;
+import "./common.moss" use print_int;
 
 # How numbers are stored, separately from how they are computed: an array
 # of the stored type, and how a `Float` becomes one and back.

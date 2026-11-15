@@ -2,7 +2,7 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm, Boxed, Ref, Heap, .boxed;
 import "wasip1.moss" use Wasi;
-import "../../common.moss" use print_line;
+import "./common.moss" use print_line;
 
 # The tree Sampson starts from: each node holds its children through a
 # `Ref` to the garbage-collected heap, as Rust's do through a `Box`, so

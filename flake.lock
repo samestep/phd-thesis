@@ -182,15 +182,14 @@
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "rust-overlay": "rust-overlay"
+        ]
       },
       "locked": {
-        "lastModified": 1794494622,
-        "narHash": "sha256-26QlcUoszma2ub4JPZelUN2UwLJOIasBsNQsL2IyTNM=",
+        "lastModified": 1794702438,
+        "narHash": "sha256-CIdjq+8yJ5EwJXyg+DbbUEehs+Fdlq4u061u9leH11o=",
         "owner": "moss-lang",
         "repo": "moss",
-        "rev": "5dfc11be6ad6a7d1cd391e526194ae32240d0b5a",
+        "rev": "63478acef0faa09ccd3b6498dd5364a348db324f",
         "type": "github"
       },
       "original": {
@@ -386,27 +385,6 @@
         "undici-types": "undici-types",
         "virgil": "virgil",
         "wyvern": "wyvern"
-      }
-    },
-    "rust-overlay": {
-      "inputs": {
-        "nixpkgs": [
-          "moss",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1794476126,
-        "narHash": "sha256-KBjfmgZIUqBpjsemRKp4GvrCf8DlNsldkmxphh4X9oo=",
-        "owner": "oxalica",
-        "repo": "rust-overlay",
-        "rev": "d1e30fd696e1151603aa8adaa8f6b8c604fe3eb0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "oxalica",
-        "repo": "rust-overlay",
-        "type": "github"
       }
     },
     "systems": {

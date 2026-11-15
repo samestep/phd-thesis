@@ -135,7 +135,7 @@
           pkgs = import nixpkgs { inherit system; };
           mossPkg = moss.packages.${system}.default;
 
-          # Every example is a directory of source files under
+          # Most examples are directories of source files under
           # `examples/<language>/<program>/`: `<mechanism>/<variant>` for a
           # program written with one mechanism for passing its context in
           # several variants (for `ast`: `concrete`, a fixed index type;
@@ -151,11 +151,8 @@
           # A `run` names the file it runs as `$main`: the example's `main.*`,
           # or else its one file, for an example the proposal shows, whose
           # name is its label there (see `snippet` in `lib.typ`).
-          # It may also list `shared` files, paths under `examples/<language>`
-          # that its examples import: they are copied in beside the example
-          # where they sit in the repository, so a relative import reaches
-          # them in the build as it does in a checkout.
-          # Each example as the list of its path segments under `examples`.
+          # Moss lists its entry points explicitly in its check.nix, so they
+          # can live beside the modules they import.
           examples =
             let
               walk =
@@ -185,18 +182,21 @@
                   )
                 )
             ) (lib.attrNames (lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./examples)));
-          example =
+          checkArgs = {
+            inherit pkgs inputs;
+            moss = mossPkg;
+          };
+          mossSpec = import ./examples/moss/check.nix checkArgs;
+          mossExamples = lib.mapAttrsToList (
+            main: segments: runExample ([ "moss" ] ++ segments) ./examples/moss main mossSpec
+          ) mossSpec.entrypoints;
+          nestedExample =
             segments:
             let
               under = segments: ./examples + "/${lib.concatStringsSep "/" segments}";
               # The directories above the example, nearest first.
               parents = map (n: lib.take n segments) (lib.reverseList (lib.range 1 (lib.length segments - 1)));
               check = lib.findFirst builtins.pathExists null (map (dir: under dir + "/check.nix") parents);
-              spec = import check {
-                inherit pkgs inputs;
-                moss = mossPkg;
-              };
-              name = "example-${lib.concatStringsSep "-" segments}";
               dir = under segments;
               files = lib.attrNames (lib.filterAttrs (_: type: type != "directory") (builtins.readDir dir));
               mains = lib.filter (lib.hasPrefix "main.") files;
@@ -206,30 +206,22 @@
                 else if lib.length files == 1 then
                   lib.head files
                 else
-                  throw "${name}: no main.* file, and more than one file";
-              shared = spec.shared or [ ];
-              # The example's place under its language's directory.
-              rel = lib.concatStringsSep "/" (lib.drop 1 segments);
-              setup =
-                if shared == [ ] then
-                  "cp -r ${dir} src\nchmod -R u+w src\ncd src"
-                else
-                  ''
-                    mkdir -p tree/${rel}
-                    cp -r ${dir}/. tree/${rel}
-                    ${lib.concatMapStrings (
-                      file: "cp ${under [ (lib.head segments) ] + "/${file}"} tree/${file}\n"
-                    ) shared}
-                    chmod -R u+w tree
-                    cd tree/${rel}
-                  '';
+                  throw "${lib.concatStringsSep "/" segments}: no main.* file, and more than one file";
+            in
+            runExample segments dir main (import check checkArgs);
+          runExample =
+            segments: dir: main: spec:
+            let
+              name = "example-${lib.concatStringsSep "-" segments}";
             in
             lib.nameValuePair name (
               if !(spec.supported or true) then
                 null
               else
                 pkgs.runCommandCC name { nativeBuildInputs = spec.packages or [ ]; } ''
-                  ${setup}
+                  cp -r ${dir} src
+                  chmod -R u+w src
+                  cd src
                   export HOME=$(mktemp -d)
                   main=${lib.escapeShellArg main}
                   {
@@ -296,10 +288,16 @@
             shadow-routines =
               pkgs.runCommand "check-shadow-routines" { nativeBuildInputs = [ pkgs.python3 ]; }
                 ''
-                  python3 ${./vendor/flatcalc/verbatim.py} ${./examples/moss/rerun/context/main.moss} \
-                    ${./examples/moss/shadow/context/stddev.moss} 'fn readings(' 'fn stddev(' 'fn show(' 'fn report('
+                  python3 ${./vendor/flatcalc/verbatim.py} ${./examples/moss/rerun.moss} \
+                    ${./examples/moss/stddev.moss} 'fn readings(' 'fn stddev(' 'fn show(' 'fn report('
                   touch $out
                 '';
+            numacc4-diff = pkgs.runCommand "check-numacc4-diff" { } ''
+              sed '/^    bind StdBase;$/a\    bind DoubleDouble;' \
+                ${./examples/moss/NumAcc4.moss} > expected
+              diff -u expected ${./examples/moss/NumAcc4Precise.moss}
+              touch $out
+            '';
             # PostgreSQL 11.22 computes the standard deviation of NIST's
             # NumAcc4 data, certified 0.1, as exactly zero.
             numacc4 =
@@ -329,7 +327,9 @@
               touch $out
             '';
           }
-          // lib.filterAttrs (_: drv: drv != null) (lib.listToAttrs (map example examples));
+          // lib.filterAttrs (_: drv: drv != null) (
+            lib.listToAttrs (map nestedExample examples ++ mossExamples)
+          );
         }
       );
     in

@@ -2,13 +2,13 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch, Numerics, Containers;
 import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
-import "../../arena.moss" use Arena, Arenas, ScratchArena;
-import "../../common.moss" use print_int;
+import "./arena.moss" use Arena, Arenas, ScratchArena;
+import "./common.moss" use print_int;
 
 # For each start value, the Collatz trajectory down to 1 is built as a
 # temporary list in an arena, and only two numbers are kept from it: how
 # many steps it took, and the largest value on the way. `Arena`, and
-# what it does and does not guarantee, is in `../../arena.moss`.
+# what it does and does not guarantee, is in `./arena.moss`.
 
 assume Char, Numerics, Containers {
   tag Summary { steps: Int, peak: Int };

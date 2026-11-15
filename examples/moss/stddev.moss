@@ -4,12 +4,12 @@ import "wasi.moss" use WasiStd;
 import "wasistd.moss" use Branch;
 import "wasm.moss" use Wasm;
 import "wasip1.moss" use Wasi;
-import "../../common.moss" use print_line;
-import "../../shadow.moss" use Shadow, tolerance;
+import "./common.moss" use print_line;
+import "./shadow.moss" use Shadow, tolerance;
 
 # Kahan's harness (shadow.moss) around the rerun example's `readings`,
 # `stddev`, `show` and `report`, copied unchanged from
-# examples/moss/rerun/context/main.moss: p in f64 and P in double-double,
+# examples/moss/rerun.moss: p in f64 and P in double-double,
 # side by side, with P following p's branches. Then two benign inputs of
 # the same shape, which should draw no report.
 

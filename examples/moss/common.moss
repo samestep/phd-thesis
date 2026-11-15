@@ -1,7 +1,6 @@
 # What every Moss example here prints with, and the part of `Std` that
 # real-valued code needs: what the other languages' examples get from
-# their standard libraries. Imported by a relative path, so the examples'
-# `check.nix` lists it as `shared`.
+# their standard libraries.
 
 assume Std {
   fn print_int(n: Int) {

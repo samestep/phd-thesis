@@ -42,9 +42,21 @@ This document proposes a novel programming language design which we call _ambien
 
 #figure(
   placement: auto,
-  snippet("examples/moss/shadow/context/stddev.moss", from: "fn stddev("),
-  caption: [The numerically unstable one-pass algorithm for computing standard deviation, implemented in Moss.],
+  snippet("examples/moss/NumAcc4.moss"),
+  caption: [The introductory SQL query in Moss. It reproduces the result of PostgreSQL 11.22 and prints `0`.],
 ) <stddev-moss>
+
+#figure(
+  placement: auto,
+  diff(
+    (path: "examples/moss/NumAcc4.moss", from: "fn main("),
+    (
+      path: "examples/moss/NumAcc4Precise.moss",
+      from: "fn main(",
+    ),
+  ),
+  caption: [One added binding reruns the program in double-double arithmetic and prints `0.1`, the certified value @numacc4.],
+) <stddev-precise>
 
 #figure(
   placement: auto,
@@ -144,6 +156,7 @@ This document proposes a novel programming language design which we call _ambien
         [_dec_],
         $r$,
         [$r$`(`#seq[$e$]`)`],
+        [$p$`[`#seq[$beta$]`](`#seq[$e$]`)`],
         [$r$`{`#seq[$x$ #opt[`= `$e$]]`}`],
       ),
     ),
@@ -189,7 +202,9 @@ This document proposes a novel programming language design which we call _ambien
 
 == Language design
 
-@stddev-moss shows a translation of the Postgres `stddev` code into Moss. This example shows the basics of Moss syntax, which is fairly unremarkable. @grammar gives its grammar.
+@stddev-moss translates the introductory SQL query into Moss. The call to `array::tabulate` binds the element type and the function that computes a reading. Those bindings apply only to that call.
+
+@stddev-precise adds `bind DoubleDouble` to `main`. The two calls in `stddev(readings())` now use the new `Float` binding, from constructing the readings through taking the square root. Both functions are called as before. @grammar gives the syntax of Moss.
 
 = Proposed work <proposed>
 
