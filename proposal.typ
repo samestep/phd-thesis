@@ -50,6 +50,7 @@ This document proposes a novel programming language design which we call _ambien
 ) <stddev-moss>
 
 #figure(
+  kind: raw,
   diff(
     (path: "examples/moss/NumAcc4.moss"),
     (path: "examples/moss/NumAcc4Precise.moss"),
