@@ -156,6 +156,96 @@ Even though this program is statically typed and does not explicitly define a ge
 
 @syntax gives the abstract syntax.
 
+#figure(
+  placement: top,
+  kind: image,
+  text(10pt, bnf(
+    ([Code tables], $P$, ([$(#seq[$f ↦ e$], #seq[$u ↦ C$])$],)),
+    (
+      [Functor code],
+      $C$,
+      (
+        [$(#seq[$t$], #seq[$t'$], theta, #seq[$k$], #seq[$beta$], #seq[$k'$])$],
+      ),
+    ),
+    (
+      [Type],
+      $tau$,
+      (
+        $t$,
+        $hat(t)$,
+        `()`,
+        [$n[theta]$],
+        [`{`#seq[$ell$: $tau$]`}`],
+        [$⋃ #seq[$tau$]$],
+      ),
+    ),
+    ([Type substitution], $theta$, ([#seq[$t ↦ tau$]],)),
+    (
+      [Provision key],
+      $k$,
+      (
+        [`type` $t$],
+        [`val` $v$],
+        [`fn` $f$],
+        [$tau$`.`$m[theta]$],
+        [`functor` $u$],
+      ),
+    ),
+    ([Satisfaction map], $sigma$, ([#seq[$k ↦ k'$]],)),
+    ([Type capture], $chi$, ($(theta_g, theta_a)$,)),
+    ([Primitive operation], $o$, ([$a(#seq[$i$])$],)),
+    (
+      [Pattern],
+      $pi$,
+      (`_`, $x$, [$n ⟨#opt[$x$], #seq[$ell ↦ x$]⟩$]),
+    ),
+    (
+      [Expression],
+      $e$,
+      (
+        $x$,
+        `()`,
+        $v$,
+        $n[theta] ⟨e⟩$,
+        [`{`#seq[$ell$ `=` $e$]`}`],
+        [$e$`.`$ell$],
+      ),
+      (
+        [$f[theta, sigma](#seq[$e$])$],
+        [$f(#seq[$e$])$],
+        [$e$`.`$m[k](#seq[$e$])$],
+      ),
+      (
+        [`let` $x$ `=` $e$ `in` $e$],
+        [`bind` $beta$ `in` $e$],
+        [$e$`;` $e$],
+        [$x$ `=` $e$],
+      ),
+      ([`while` $e$ `do` $e$], [`loop` $e$], [`return` $e$], `break`),
+      ([`match` $e$` {`#seq[$pi$` => `$e$]`}`],),
+    ),
+    (
+      [Binding],
+      $beta$,
+      ([`type` $t$ `=` $tau$], [`val` $v$ `=` $e$]),
+      (
+        [`fn` $f$ `=` $f'[chi, sigma]$],
+        [$tau$`.`$m[theta]$ `=` $f'[chi, sigma]$],
+      ),
+      (
+        [`functor` $u$ `=` $u'[chi, sigma_1, sigma_2]$],
+        [`copy` $u$ `=` $u'[sigma, #seq[$i$]]$],
+      ),
+      (
+        [`apply` $u[theta, #seq[$t ↦ t'$], sigma, #seq[$k$]]$],
+        [`primitive` $k$ `=` $o$],
+      ),
+    ),
+  )),
+  caption: [Elaborated representation. $t$, $n$, $v$, $f$, $m$, and $u$ are type, tag, value, function, method, and functor symbols. $x$ is a local, $ell$ a field label, $a$ a platform operation name, and $i$ a natural number. $hat(t)$ is a rigid type generation and the empty union is uninhabited.],
+) <syntax-elaborated>
+
 = Proposed work <proposed>
 
 = Related work <related>
