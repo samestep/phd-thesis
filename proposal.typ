@@ -36,30 +36,41 @@ This bug was eventually discovered by a third-party domain expert @schubert2018b
 
 But the reason we have to _imagine_ such a tool is because we would have to go out of our way to create it. The programming languages we use do not make it easy to perform such transformations unless one plan ahead and writes less straightforward code in the hope that it will pay off later. Of course, often it doesn't pay off. So often the smart thing to do is to avoid paying the cost of extra complexity by just writing the straightforward code in the first place.
 
-This document proposes a novel programming language design which we call _ambient polymorphism_, with the thesis that *the cost of writing flexible programs can be drastically reduced by decoupling polymorphism from dataflow*. @completed describes the language design and current implementation. @proposed sketches out a plan for evaluation. @related situates this work within the body of relevant research literature.
+This document proposes a novel programming language design which we call _ambient polymorphism_, with the following thesis:
 
-= Completed work <completed>
-
-== Language design
-
-@stddev-moss translates the introductory SQL query into Moss. The call to `array::tabulate` binds the element type and the function that computes a reading. Those bindings apply only to that call.
+#quote(block: true)[
+  *The cost of writing programs that are flexible by default can be greatly reduced by decoupling polymorphism from dataflow.*
+]
 
 #figure(
+  placement: top,
   snippet("examples/moss/NumAcc4.moss"),
-  caption: [The introductory SQL query in Moss. It reproduces the result of PostgreSQL 11.22 and prints `0`.],
+  caption: [The NumAcc4 failure example in Moss.],
 ) <stddev-moss>
 
+@stddev-moss shows the numerically unstable standard deviation algorithm translated into _Moss_, an experimental programming language that reifies ambient polymorphism.
+
 #figure(
+  placement: top,
   kind: raw,
   diff(
     (path: "examples/moss/NumAcc4.moss"),
     (path: "examples/moss/NumAcc4Precise.moss"),
     context-lines: 2,
   ),
-  caption: [Importing and binding `DoubleDouble` reruns the same computation in double-double arithmetic and prints `0.1`, the certified value @numacc4.],
+  caption: [Switching from double precision to double-double precision.],
 ) <stddev-precise>
 
+Even though this program is statically typed and does not explicitly define a generic type parameter for floating-point precision, it nonetheless benefits from Moss's ambient polymorphism. @stddev-precise shows how only a couple lines of code are required to switch from double precision to double-double precision. This modified program prints `0.1`.
+
+@completed describes the theory, language design and current implementation. @proposed sketches out a plan for evaluation. @related situates this work within the body of relevant research literature.
+
+= Completed work <completed>
+
+== Theory
+
 #figure(
+  placement: top,
   kind: image,
   bnf(
     ([File], $F$, ([#seq[$m$] #seq[$d$]],)),
@@ -205,7 +216,7 @@ This document proposes a novel programming language design which we call _ambien
   caption: [The grammar of Moss. Here $x$ ranges over names, and _str_, _int_ and _dec_ over string, integer and decimal literals; $(X)^?$ marks an optional $X$, and $overline(X)$ a possibly empty sequence of $X$, separated by commas (with an optional trailing comma) unless $X$ is an import, declaration, statement, bind or arm. A bare `|` is the uninhabited type. An expression statement may omit its `;` only if it begins with `if`, `match` or a block, and the last arm of a `match` may omit its `,`. A comment runs from `#` to the end of the line; _int_ is a run of digits and _dec_ two runs joined by `.`, and either may end in an exponent: `e` or `E`, an optional sign, and digits.],
 ) <grammar>
 
-@stddev-precise imports `DoubleDouble` and adds one binding in `main`. The two calls in `stddev(readings())` now use the new `Float` binding, from constructing the readings through taking the square root. Both functions are called as before. @grammar gives the syntax of Moss.
+@grammar gives the abstract syntax of the Moss language.
 
 = Proposed work <proposed>
 
