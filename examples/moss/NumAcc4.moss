@@ -1,5 +1,3 @@
-import "./doubledouble.moss" use DoubleDouble;
-
 assume Std {
   fn readings(): Array[Item=Float] {
     array::tabulate[

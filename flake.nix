@@ -293,8 +293,11 @@
                   touch $out
                 '';
             numacc4-diff = pkgs.runCommand "check-numacc4-diff" { } ''
-              sed '/^    bind StdBase;$/a\    bind DoubleDouble;' \
-                ${./examples/moss/NumAcc4.moss} > expected
+              {
+                printf '%s\n\n' 'import "./doubledouble.moss" use DoubleDouble;'
+                sed '/^    bind StdBase;$/a\    bind DoubleDouble;' \
+                  ${./examples/moss/NumAcc4.moss}
+              } > expected
               diff -u expected ${./examples/moss/NumAcc4Precise.moss}
               touch $out
             '';

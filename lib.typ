@@ -258,8 +258,14 @@
 // number in its own file, and the block is labelled with both names.
 // Side by side if both sides' lines fit beside each other, and otherwise
 // in one column, a removed line above the line that replaces it;
-// `split: true` or `split: false` chooses.
-#let diff(old, new, split: auto, lang: auto) = {
+// `split: true` or `split: false` chooses. With `context-lines`, show
+// only that many unchanged lines around each change and mark gaps between hunks.
+#let diff(old, new, split: auto, lang: auto, context-lines: none) = {
+  assert(
+    context-lines == none
+      or (type(context-lines) == int and context-lines >= 0),
+    message: "diff context-lines must be a nonnegative integer",
+  )
   let side(spec) = {
     let named = spec
       .keys()
@@ -285,7 +291,7 @@
       }
     }
   }
-  let render(split, left-weight, right-weight) = {
+  let plan(split) = {
     // Rows of (kept, old line index or none, new line index or none): a
     // line kept has both; a run of removed and added lines between two kept
     // ones is paired up side by side, or, in one column, removed lines first.
@@ -323,6 +329,27 @@
       }
     }
     rows += changes(gone, came)
+    if context-lines == none { return rows }
+
+    let edits = rows
+      .enumerate()
+      .filter(((_, row)) => not row.first())
+      .map(pair => pair.first())
+    if edits.len() == 0 { return rows }
+    let visible = ()
+    let skipping = false
+    for (index, row) in rows.enumerate() {
+      if edits.any(edit => calc.abs(index - edit) <= context-lines) {
+        if skipping and visible.len() > 0 { visible.push(none) }
+        visible.push(row)
+        skipping = false
+      } else {
+        skipping = true
+      }
+    }
+    visible
+  }
+  let render(split, rows, left-weight, right-weight) = {
     let kept-fill = luma(96%)
     let removed = rgb("#fbe2e2")
     let added = rgb("#dff3df")
@@ -343,7 +370,17 @@
       )
     }
     let cells = ()
-    for (kept, k, l) in rows {
+    for row in rows {
+      if row == none {
+        cells.push(table.cell(
+          colspan: if split { 4 } else { 3 },
+          fill: luma(90%),
+          inset: (y: 1pt),
+          align(center, text(size: 0.8em, fill: luma(35%))[· · ·]),
+        ))
+        continue
+      }
+      let (kept, k, l) = row
       if split {
         let left = if k == none { absent } else if kept { kept-fill } else {
           removed
@@ -411,14 +448,19 @@
   // what each needs, and wrap alike.
   layout(size => {
     let inset = 8pt
-    let widest(lines) = (
-      calc.max(0pt, ..lines.map(line => measure(code-line(line, lang)).width))
-        + inset
-    )
+    let split-rows = plan(true)
+    let widest(lines, side) = {
+      let widths = split-rows
+        .filter(row => row != none)
+        .map(row => row.at(side))
+        .filter(index => index != none)
+        .map(index => measure(code-line(lines.at(index), lang)).width)
+      calc.max(0pt, ..widths) + inset
+    }
     let numbers(start, lines) = (
       measure(text(size: 0.8em, aside(str(start + lines.len())))).width + inset
     )
-    let (need-a, need-b) = (widest(a), widest(b))
+    let (need-a, need-b) = (widest(a, 1), widest(b, 2))
     let room = size.width - numbers(a-start, a) - numbers(b-start, b)
     let fits = need-a + need-b <= room
     let (left, right) = if fits {
@@ -427,7 +469,13 @@
     } else {
       (need-a, need-b)
     }
-    render(if split == auto { fits } else { split }, left / 1pt, right / 1pt)
+    let use-split = if split == auto { fits } else { split }
+    render(
+      use-split,
+      if use-split { split-rows } else { plan(false) },
+      left / 1pt,
+      right / 1pt,
+    )
   })
 }
 
