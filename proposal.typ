@@ -116,7 +116,7 @@ This document proposes a novel programming language design which we call _ambien
       (
         [`let` $x$#opt[`: `$tau$]` = `$e$`;`],
         [`var` $x$#opt[`: `$tau$]` = `$e$`;`],
-        [$x$` = `$e$`;`],
+        [$x$ $alpha$ $e$`;`],
         $w$,
       ),
       (
@@ -126,6 +126,11 @@ This document proposes a novel programming language design which we call _ambien
         [$e$`;`],
         [$e$],
       ),
+    ),
+    (
+      [Assignment],
+      $alpha$,
+      (`=`, `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`),
     ),
     ([Bind], $w$, ([`bind` #seq[$beta$]`;`],)),
     (

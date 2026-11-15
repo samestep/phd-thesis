@@ -185,11 +185,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794702438,
-        "narHash": "sha256-CIdjq+8yJ5EwJXyg+DbbUEehs+Fdlq4u061u9leH11o=",
+        "lastModified": 1794704936,
+        "narHash": "sha256-EYEbVTWaKvBTVCAYz3fg0GUFI4MfK4RSkWKBSMxjwg4=",
         "owner": "moss-lang",
         "repo": "moss",
-        "rev": "63478acef0faa09ccd3b6498dd5364a348db324f",
+        "rev": "bbfa69f1b3eea2bc767e4c43f5c4cca848e99527",
         "type": "github"
       },
       "original": {

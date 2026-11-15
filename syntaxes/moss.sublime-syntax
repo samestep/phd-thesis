@@ -139,10 +139,10 @@ contexts:
     scope: keyword.operator.arrow.moss
   - match: ==|!=|<=|>=
     scope: keyword.operator.comparison.moss
+  - match: (?:<<|>>|[*/%+&|^\-])?=
+    scope: keyword.operator.assignment.moss
   - match: <<|>>
     scope: keyword.operator.bitwise.shift.moss
-  - match: '='
-    scope: keyword.operator.assignment.moss
   - match: '[<>]'
     scope: keyword.operator.comparison.moss
   - match: '[*/%+\-]'

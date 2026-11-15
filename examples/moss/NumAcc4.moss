@@ -16,9 +16,9 @@ assume Std {
     var sum = 0.0;
     var sum_sq = 0.0;
     for x in xs {
-      n = n + 1.0;
-      sum = sum + x;
-      sum_sq = sum_sq + x * x;
+      n += 1.0;
+      sum += x;
+      sum_sq += x * x;
     }
     let numerator = n * sum_sq - sum * sum;
     if numerator <= 0.0 { return 0.0; }
