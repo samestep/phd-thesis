@@ -19,6 +19,7 @@ let
     fileset = lib.fileset.unions [
       ./proposal.typ
       ./lib.typ
+      ./flake.lock
       ./refs.yml
       ./syntaxes/moss.sublime-syntax
       ./examples

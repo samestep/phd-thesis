@@ -595,6 +595,14 @@
 // A citation naming the authors in the running text, as natbib's `\citet`.
 #let citet(key) = cite(key, form: "prose")
 
+// Link to the Moss source tree used to build and check the examples.
+#let moss-footnote() = {
+  let lock = json("flake.lock")
+  let moss = lock.nodes.at(lock.nodes.at(lock.root).inputs.moss).locked
+  let repo = "https://github.com/" + moss.owner + "/" + moss.repo
+  footnote(link(repo + "/tree/" + moss.rev))
+}
+
 // The document's styling, as `#show: style`: page numbers, Moss
 // highlighting, `listings` for code, and block quotes set off by a grey
 // rule on the left.

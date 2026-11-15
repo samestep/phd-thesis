@@ -1,5 +1,6 @@
 #import "lib.typ": (
-  bnf, choice, citet, diff, many, opt, seq, snippet, style, title-page,
+  bnf, choice, citet, diff, many, moss-footnote, opt, seq, snippet, style,
+  title-page,
 )
 
 #show: style
@@ -247,6 +248,10 @@ Even though this program is statically typed and does not explicitly define a ge
 ) <syntax-elaborated>
 
 @syntax-elaborated gives the syntax of elaborated programs.
+
+== Implementation
+
+The full syntax and static and dynamic semantics are formalized in Rocq, with a reference implementation verified sound against those semantics and a self-hosting compiler that is tested to agree with the reference implementation.#moss-footnote()
 
 = Proposed work <proposed>
 
